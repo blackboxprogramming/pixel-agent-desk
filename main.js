@@ -98,6 +98,8 @@ app.commandLine.appendSwitch('disable-software-rasterizer');
 // =====================================================
 // Claude CLI 훅 자동 등록 & 프로세스 PID 모니터링
 // =====================================================
+const HOOK_SERVER_PORT = 47821;
+
 function setupClaudeHooks() {
   try {
     const settingsPath = path.join(os.homedir(), '.claude', 'settings.json');
@@ -108,30 +110,137 @@ function setupClaudeHooks() {
     }
     if (!settings.hooks) settings.hooks = {};
 
-    const startScript = path.join(__dirname, 'sessionstart_hook.js').replace(/\\/g, '/');
+    const hookUrl = `http://localhost:${HOOK_SERVER_PORT}/hook`;
+
+    // HTTP 훅 upsert (중복 방지)
+    const upsertHttpHook = (eventName) => {
+      let eventHooks = settings.hooks[eventName] || [];
+      // 기존 pixel-agent-desk HTTP 훅 제거
+      eventHooks = eventHooks.filter(container => {
+        if (!container.hooks) return true;
+        return !container.hooks.some(h => h.type === 'http' && h.url && h.url.includes(`:${HOOK_SERVER_PORT}`));
+      });
+      eventHooks.push({ matcher: "*", hooks: [{ type: "http", url: hookUrl }] });
+      settings.hooks[eventName] = eventHooks;
+    };
+
+    upsertHttpHook('SessionStart');
+    upsertHttpHook('SessionEnd');
+
+    // command 훅도 유지 (SessionEnd 정상 종료 시 JSONL 기록용)
     const endScript = path.join(__dirname, 'sessionend_hook.js').replace(/\\/g, '/');
-
-    const startCmd = `node "${startScript}"`;
     const endCmd = `node "${endScript}"`;
-
-    const upsertHook = (eventName, cmd) => {
+    const upsertCmdHook = (eventName, cmd) => {
       let eventHooks = settings.hooks[eventName] || [];
       eventHooks = eventHooks.filter(container => {
         if (!container.hooks) return true;
-        return !container.hooks.some(h => h.type === 'command' && h.command && h.command.includes(path.basename(cmd)));
+        return !container.hooks.some(h => h.type === 'command' && h.command && h.command.includes('sessionend_hook'));
       });
       eventHooks.push({ matcher: "*", hooks: [{ type: "command", command: cmd }] });
       settings.hooks[eventName] = eventHooks;
     };
-
-    upsertHook('SessionStart', startCmd);
-    upsertHook('SessionEnd', endCmd);
+    upsertCmdHook('SessionEnd', endCmd);
 
     fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 4));
-    debugLog('[Main] Registered SessionStart & SessionEnd hooks to settings.json');
+    debugLog(`[Main] Registered HTTP hooks (port ${HOOK_SERVER_PORT}) to settings.json`);
   } catch (e) {
     debugLog(`[Main] Failed to setup hooks: ${e.message}`);
   }
+}
+
+// =====================================================
+// HTTP 훅 서버 — Claude CLI가 SessionStart/End를 POST로 알려줌
+// =====================================================
+function startHookServer() {
+  const http = require('http');
+
+  const server = http.createServer((req, res) => {
+    if (req.method !== 'POST' || req.url !== '/hook') {
+      res.writeHead(404);
+      res.end();
+      return;
+    }
+
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', () => {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: true }));
+
+      try {
+        const data = JSON.parse(body);
+        const event = data.hook_event_name;
+        const sessionId = data.session_id || data.sessionId;
+
+        if (!sessionId) return;
+
+        debugLog(`[Hook] ${event} — session ${sessionId.slice(0, 8)}`);
+
+        if (event === 'SessionStart') {
+          // agent_pids.json에 세션 등록 (PID는 스캔으로 추후 채워질 수 있음)
+          const pidFile = path.join(os.homedir(), '.claude', 'agent_pids.json');
+          try {
+            let pidsInfo = {};
+            if (fs.existsSync(pidFile)) {
+              try { pidsInfo = JSON.parse(fs.readFileSync(pidFile, 'utf8')); } catch (e) { }
+            }
+            pidsInfo[sessionId] = {
+              pid: 0,
+              cwd: data.cwd || '',
+              timestamp: new Date().toISOString(),
+              source: 'http'
+            };
+            const tmpFile = pidFile + '.tmp';
+            fs.writeFileSync(tmpFile, JSON.stringify(pidsInfo, null, 2));
+            fs.renameSync(tmpFile, pidFile);
+            debugLog(`[Hook] SessionStart recorded: ${sessionId.slice(0, 8)}`);
+          } catch (e) {
+            debugLog(`[Hook] Failed to record SessionStart: ${e.message}`);
+          }
+
+        } else if (event === 'SessionEnd') {
+          // 즉시 에이전트 제거
+          if (agentManager) {
+            const agent = agentManager.getAgent(sessionId);
+            if (agent) {
+              debugLog(`[Hook] SessionEnd — removing agent ${sessionId.slice(0, 8)}`);
+              // JSONL에 SessionEnd 기록 (좀비 방지)
+              if (agent.jsonlPath && fs.existsSync(agent.jsonlPath)) {
+                try {
+                  fs.appendFileSync(agent.jsonlPath, JSON.stringify({
+                    type: "system", subtype: "SessionEnd",
+                    sessionId: agent.id, timestamp: new Date().toISOString()
+                  }) + '\n');
+                } catch (e) { }
+              }
+              agentManager.removeAgent(sessionId);
+              // agent_pids.json에서도 삭제
+              const pidFile = path.join(os.homedir(), '.claude', 'agent_pids.json');
+              try {
+                const pidsInfo = JSON.parse(fs.readFileSync(pidFile, 'utf8'));
+                delete pidsInfo[sessionId];
+                const tmpFile = pidFile + '.tmp';
+                fs.writeFileSync(tmpFile, JSON.stringify(pidsInfo, null, 2));
+                fs.renameSync(tmpFile, pidFile);
+              } catch (e) { }
+            } else {
+              debugLog(`[Hook] SessionEnd for unknown agent ${sessionId.slice(0, 8)} (not yet active?)`);
+            }
+          }
+        }
+      } catch (e) {
+        debugLog(`[Hook] Parse error: ${e.message}`);
+      }
+    });
+  });
+
+  server.on('error', (e) => {
+    debugLog(`[Hook] Server error: ${e.message}`);
+  });
+
+  server.listen(HOOK_SERVER_PORT, '127.0.0.1', () => {
+    debugLog(`[Hook] HTTP hook server listening on port ${HOOK_SERVER_PORT}`);
+  });
 }
 
 function startPidMonitoring() {
@@ -254,8 +363,9 @@ function startPidMonitoring() {
 
 app.whenReady().then(() => {
   debugLog('Pixel Agent Desk started');
-  setupClaudeHooks();
-  startPidMonitoring();
+  startHookServer();      // HTTP 훅 서버 먼저 시작
+  setupClaudeHooks();     // 훅 설정 등록
+  startPidMonitoring();   // 스캔 방식 백업 유지
   createWindow();
 
 
