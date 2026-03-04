@@ -218,16 +218,21 @@ function createAgentCard(agent) {
   const header = document.createElement('div');
   header.className = 'agent-header';
 
+  const projectTagWrapper = document.createElement('div');
+  projectTagWrapper.className = 'project-tag-wrapper';
+  projectTagWrapper.setAttribute('data-full-path', agent.projectPath || 'No Path');
+
   const projectTag = document.createElement('span');
   projectTag.className = 'project-tag';
   projectTag.textContent = agent.projectPath ? agent.projectPath.split(/[\\/]/).pop() : 'Default';
-  projectTag.title = agent.projectPath || ''; // 긴 경로 네이티브 툴팁으로 표시
+
+  projectTagWrapper.appendChild(projectTag);
 
   const typeTag = document.createElement('span');
   typeTag.className = `type-tag ${typeClass}`;
   typeTag.textContent = typeLabel;
 
-  header.appendChild(projectTag);
+  header.appendChild(projectTagWrapper);
   header.appendChild(typeTag);
   card.appendChild(header);
 
