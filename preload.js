@@ -30,8 +30,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     return new Promise(resolve => ipcRenderer.once('agent-stats-response', (_, d) => resolve(d)));
   },
 
-  // 터미널 포커스 (에이전트 클릭 시)
-  focusTerminal: (projectPath) => ipcRenderer.send('focus-terminal', projectPath),
+  // 터미널 포커스 (에이전트 클릭 시) - agentId로 실제 PID 활용
+  focusTerminal: (agentId) => ipcRenderer.send('focus-terminal', agentId),
 
   // 에이전트 수동 퇴근 (X 버튼 클릭 시)
   dismissAgent: (agentId) => ipcRenderer.send('dismiss-agent', agentId)

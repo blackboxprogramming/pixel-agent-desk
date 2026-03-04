@@ -13,12 +13,12 @@ Pixel Agent Desk v2.0는 Claude CLI의 Hook 시스템을 통해 실시간 이벤
 
 ### 2. `main.js` - Electron 메인 프로세스 & HTTP 훅 서버
 - **HTTP 훅 서버** (Port 47821):
-  - `hook.js`에서 받은 이벤트를 처리하는 내장 서버
-  - 수신 이벤트: `SessionStart`, `SessionEnd`, `PreToolUse`, `PostToolUse`, `TaskCompleted`, `PermissionRequest`, `SubagentStart`, `SubagentStop`
-  - 첫 `PreToolUse` 자동 무시 (세션 초기화 탐색)
-- **자동 훅 등록**: 앱 시작 시 `~/.claude/settings.json`에 모든 훅을 자동 등록
-- **윈도우 관리**: 에이전트 수에 따른 동적 크기 조절
-- **30분 비활성 타임아웃**: 5분마다 `lastActivity` 기준 확인 및 자동 제거
+  - 수신 이벤트: `SessionStart`, `SessionEnd`, `UserPromptSubmit`, `Stop`, `PreToolUse`, `PostToolUse`, `PostToolUseFailure`, `TaskCompleted`, `PermissionRequest`, `Notification`, `SubagentStart`, `SubagentStop`
+  - 상태머신: 이벤트에 따라 `Working`, `Done`, `Waiting`, `Help`, `Error` 실시간 전환
+- **PID 기반 생사 확인 (Liveness Checker)**: 
+  - `process.kill(pid, 0)`을 통해 3초마다 실제 프로세스 생존 확인. 죽은 프로세스 즉시 제거.
+- **세션 복구 (Recovery)**: 앱 시작 시 WMI를 통해 현재 실행 중인 Claude PID 목록을 확보하고 최신 세션 실시간 복구.
+- **자동 훅 등록**: 앱 시작 시 `~/.claude/settings.json`에 훅 자동 등록.
 
 ### 3. `agentManager.js` - 멀티 에이전트 데이터 관리자
 - `sessionId` 기반 에이전트 생명주기 관리
@@ -27,9 +27,9 @@ Pixel Agent Desk v2.0는 Claude CLI의 Hook 시스템을 통해 실시간 이벤
 - EventEmitter 기반 `agent-added`, `agent-updated`, `agent-removed`, `agents-cleaned` 이벤트 발송
 - 10분 유휴 타임아웃 및 자동 정리
 
-### 4. `sessionend_hook.js` - 세션 종료 훅
-- `SessionEnd` 이벤트 시 JSONL 파일에 `SessionEnd` 기록
-- 강제 종료 시에도 로그에 기록을 남겨 좀비 에이전트 방지
+### 4. `utils.js` - 유틸리티 및 윈도우 관리
+- `focusTerminal(pid)`: PowerShell 스크립트를 통해 특정 PID를 소유한 터미널 창을 최상단으로 호출
+- `formatSlugToDisplayName`: Claude 세션 슬러그를 읽기 좋게 변환
 
 ### 5. `renderer.js` & `styles.css` - UI 렌더러
 - **빈 상태 (0 agents) 표출**: 에이전트가 없으면 대기 아바타를 표시
@@ -78,24 +78,17 @@ Pixel Agent Desk v2.0는 Claude CLI의 Hook 시스템을 통해 실시간 이벤
 
 ## Key Features
 
-### 1. Hook-Only Architecture
-- 별도 설정 없이 앱 시작 시 자동으로 Claude CLI 훅 등록
-- HTTP 서버를 통해 실시간 이벤트 수신 (JSONL 파싱 불필요)
-- 모든 주요 이벤트를 Hook으로 처리 (SessionStart/End, ToolUse, TaskCompleted, PermissionRequest, Subagent)
+### 1. PID-Centric Life-cycle
+- 단순 시간 기반 정리를 넘어 `process.kill(pid, 0)` 신호로 실제 프로세스 종료 즉시 감지 (3초 주기)
+- 앱 재시작 시에도 살아있는 프로세스를 찾아 세션을 복구하는 높은 회복성
 
-### 2. Smart State Management
-- 첫 `PreToolUse` 자동 무시 (세션 초기화 탐색 구분)
-- 정확한 상태 전환: Waiting → Working → Done
-- `PermissionRequest` 이벤트로 권한 요청 상태 감지
+### 2. Full-Event Coverage
+- `UserPromptSubmit`(시작), `Stop`(완료), `Notification`(알림) 등 모든 CLI 액션에 대응하는 정교한 상태 전이
 
-### 3. Subagent Support
-- `SubagentStart`, `SubagentStop` 이벤트로 서브에이전트 관리
-- 메인 에이전트와 별도로 시각화
-
-### 4. Idle / Auto Clean UI
-- 활성 에이전트가 없으면 대기 아바타를 표출
-- 30분 비활성 시 자동 제거
-- 5분마다 전체 에이전트 활동 상태 확인
+### 3. Interactive UX
+- 캐릭터 클릭 시 해당 터미널로 포커스 이동
+- 에이전트가 없을 때의 Idle 아바타 유지
+- 2.5초 Idle 감지 시 자동 Done 전환으로 훅 유실 대응
 
 ## Testing
 

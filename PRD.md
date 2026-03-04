@@ -13,27 +13,30 @@ Claude CLI 사용 중인 세션을 픽셀 캐릭터로 시각화하고 세션의
 ## 상태 정의
 | 상태 | 조건 | 애니메이션 |
 |------|------|-----------|
-| Waiting | 세션 시작 초기 상태 | 앉아 있는 포즈 (frame 32) |
-| Working | `PreToolUse`/`PostToolUse` 이벤트 (첫 번째 제외) | 일하는 포즈 (frames 1-4) |
-| Done | `TaskCompleted` 이벤트 | 춤추는 포즈 (frames 20-27) |
-| Help | `PermissionRequest` 이벤트 | 도움 요청 포즈 |
+| Waiting | 세션 시작 / 사용자 입력 대기 상태 | 앉아 있는 포즈 (frame 32) |
+| Working | `UserPromptSubmit` / `PreToolUse` 이벤트 | 일하는 포즈 (frames 1-4) |
+| Done | `Stop` / `TaskCompleted` / 2.5초 Idle 감지 | 춤추는 포즈 (frames 20-27) |
+| Help | `PermissionRequest` / `Notification` 등 상호작용 필요 | 도움 요청 포즈 |
+| Error | `PostToolUseFailure` 이벤트 | 경고 포즈 (frames 0, 31 Blink) |
 
 ## 에이전트 생명주기
 
 ### 이벤트 기반 상태 전환
 1. **SessionStart**: 새 에이전트 생성 + `Waiting` 상태
-2. **PreToolUse** (첫 번째 제외): `Working` 상태로 전환
-3. **TaskCompleted**: `Done` 상태로 전환 + 다음 PreToolUse 플래그 리셋
-4. **PermissionRequest**: `Help` 상태로 전환 (사용자 입력 대기)
-5. **SessionEnd**: 에이전트 제거
+2. **UserPromptSubmit**: 사용자가 입력을 제출하는 즉시 `Working` 상태로 전환
+3. **Stop / TaskCompleted**: Claude 응답 완료 시 즉시 `Done` 상태로 전환
+4. **PostToolUse + 2.5s Timer**: 응답 완료 훅 누락 시 2.5초 뒤 자동 `Done` 전환
+5. **PermissionRequest / Notification**: 사용자의 선택이나 확인이 필요한 `Help` 상태
+6. **SessionEnd / Process Dead**: 세션 종료 혹은 프로세스 종료 감지 시 에이전트 제거
 
 ### 초기화 탐색 자동 무시
 - 첫 `PreToolUse` 이벤트는 세션 초기화(cwd 탐색 등)로 간주하여 무시
 - 두 번째부터 사용자 요청에 의한 실제 도구 사용으로 처리
 
-### 자동 정리 시스템
-1. **30분 비활성 타임아웃**: `lastActivity` 기준 30분 경과 시 자동 제거
-2. **5분마다 전체 확인**: 모든 에이전트의 활동 상태 확인 및 정리
+### 정교한 프로세스 관리
+1. **PID 기반 실시간 감시**: `process.kill(pid, 0)`을 통해 3초마다 프로세스 생존 확인
+2. **부활 시스템 (Recovery)**: 앱 시작 시 살아있는 Claude PID를 조회하여 기존 세션 즉시 복구
+3. **터미널 포커싱**: 캐릭터 클릭 시 해당 Claude 세션이 실행 중인 터미널 창을 최상단으로 포커스
 
 ## 아키텍처
 ```
@@ -82,13 +85,12 @@ Claude CLI 사용 중인 세션을 픽셀 캐릭터로 시각화하고 세션의
 - `utils.js`: 유틸리티 함수
 
 ## 구현 현황
-- ✅ Hook 기반 실시간 이벤트 수신
-- ✅ 자동 훅 등록 (앱 시작 시 settings.json 자동 수정)
-- ✅ 멀티 에이전트 동적 레이아웃 (Electron 윈도우 리사이징)
-- ✅ 서브에이전트 지원 (SubagentStart/Stop 이벤트)
-- ✅ 초기화 탐색 자동 무시 (첫 PreToolUse)
-- ✅ 권한 요청 상태 감지 (PermissionRequest)
-- ✅ 30분 비활성 타임아웃
+- ✅ Hook 기반 실시간 이벤트 수신 (Stop, UserPromptSubmit 등 전체 커버)
+- ✅ PID 기반 정교한 생사 확인 (3초 간격 프로세싱 체크)
+- ✅ 앱 시작 시 기존 활성 세션 자동 복구 (Real PID 매칭)
+- ✅ 터미널 창 포커싱 (캐릭터 클릭 시 해당 세션으로 이동)
+- ✅ 자동 훅 등록 및 설정 관리
+- ✅ 서브에이전트 완벽 지원
 
 ## 향후 과제
 없음 (현재 Hook-Only 아키텍처로 완전히 구현됨)
