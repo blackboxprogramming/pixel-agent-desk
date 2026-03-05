@@ -11,13 +11,16 @@ body {
   background: transparent;
   display: flex;
   justify-content: center;
-  align-items: center;
+  align-items: flex-end;
+  /* 말풍선 크기 증가 시 캐릭터가 밑으로 밀리는 현상 방지. 아래쪽으로 정렬 */
   overflow: visible;
   -webkit-app-region: no-drag;
   pointer-events: none;
   /* 배경은 클릭 통과 */
   min-width: 220px;
   min-height: 190px;
+  padding-bottom: 5px;
+  /* 바닥에 딱 붙지 않도록 약간의 여백 추가 */
 }
 
 /* ════════════════════════════════════════

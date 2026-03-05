@@ -28,14 +28,14 @@ function getWindowSizeForAgents(agentsOrCount) {
     count = agentsOrCount || 0;
   }
 
-  if (count <= 1) return { width: 220, height: 210 };
+  if (count <= 1) return { width: 220, height: 260 };
 
   const CARD_W = 90;
   const GAP = 10;
   const OUTER = 120 + 20; // 팀 디자인 여백 감안
-  const ROW_H = 160;
-  const BASE_H = 210;
-  const maxCols = 5;
+  const ROW_H = 200;
+  const BASE_H = 260;
+  const maxCols = 10;
 
   if (agents.length > 0) {
     const groups = {};
@@ -236,6 +236,128 @@ function scheduleIdleDone(sessionId) {
   postToolIdleTimers.set(sessionId, timer);
 }
 
+function processHookEvent(data) {
+  const event = data.hook_event_name;
+  const sessionId = data.session_id || data.sessionId;
+  if (!sessionId) return;
+
+  debugLog(`[Hook] ${event} session=${sessionId.slice(0, 8)}`);
+
+  switch (event) {
+    case 'SessionStart':
+      handleSessionStart(sessionId, data.cwd || '', data._pid || 0);
+      break;
+
+    case 'SessionEnd':
+      handleSessionEnd(sessionId);
+      break;
+
+    case 'UserPromptSubmit':
+      // 사용자가 메시지 제출 → Working (도구 없는 순수 대화도 포함)
+      { const t = postToolIdleTimers.get(sessionId); if (t) clearTimeout(t); postToolIdleTimers.delete(sessionId); }
+      firstPreToolUseDone.delete(sessionId);
+      if (agentManager) {
+        const agent = agentManager.getAgent(sessionId);
+        if (agent) {
+          agentManager.updateAgent({ ...agent, sessionId, state: 'Working' }, 'hook');
+        } else {
+          // 복구에 실패했거나 30분 지나서 삭제된 경우, 다시 훅이 오면 새 세션으로 생성
+          debugLog(`[Hook] auto-creating agent for existing session: ${sessionId.slice(0, 8)}`);
+          handleSessionStart(sessionId, data.cwd || '');
+          // 생성 직후 상태 업데이트를 위해 다시 가져옴
+          setTimeout(() => {
+            const newAgent = agentManager.getAgent(sessionId);
+            if (newAgent) agentManager.updateAgent({ ...newAgent, state: 'Working' }, 'hook');
+          }, 100);
+        }
+      }
+      break;
+
+    case 'Stop':
+    case 'TaskCompleted':
+      // Claude 응답 완료 → Done (타이머도 취소)
+      { const t = postToolIdleTimers.get(sessionId); if (t) clearTimeout(t); postToolIdleTimers.delete(sessionId); }
+      firstPreToolUseDone.delete(sessionId);
+      if (agentManager) {
+        const agent = agentManager.getAgent(sessionId);
+        if (agent) {
+          agentManager.updateAgent({ ...agent, sessionId, state: 'Done' }, 'hook');
+        } else {
+          handleSessionStart(sessionId, data.cwd || '');
+        }
+      }
+      break;
+
+    case 'PreToolUse': {
+      // idle 타이머 취소
+      const prev = postToolIdleTimers.get(sessionId);
+      if (prev) clearTimeout(prev);
+      postToolIdleTimers.delete(sessionId);
+      // 첫 PreToolUse: 세션 초기화 탐색 → 무시 (UserPromptSubmit 못 왜을 때 보험)
+      if (!firstPreToolUseDone.has(sessionId)) {
+        firstPreToolUseDone.set(sessionId, true);
+        debugLog(`[Hook] PreToolUse ignored (first = session init)`);
+      } else if (agentManager) {
+        const agent = agentManager.getAgent(sessionId);
+        if (agent) agentManager.updateAgent({ ...agent, sessionId, state: 'Working' }, 'hook');
+      }
+      break;
+    }
+
+    case 'PostToolUse': {
+      if (agentManager && firstPreToolUseDone.has(sessionId)) {
+        const agent = agentManager.getAgent(sessionId);
+        if (agent) agentManager.updateAgent({ ...agent, sessionId, state: 'Working' }, 'hook');
+      }
+      scheduleIdleDone(sessionId);
+      break;
+    }
+
+    case 'PostToolUseFailure':
+    case 'Notification':
+    case 'PermissionRequest':
+      // 도구 실패 / 알림 / 권한 요청 → Help
+      { const t = postToolIdleTimers.get(sessionId); if (t) clearTimeout(t); postToolIdleTimers.delete(sessionId); }
+      if (agentManager) {
+        const agent = agentManager.getAgent(sessionId);
+        if (agent) agentManager.updateAgent({ ...agent, sessionId, state: 'Help' }, 'hook');
+      }
+      break;
+
+    case 'SubagentStart': {
+      const subId = data.subagent_session_id || data.agent_id;
+      if (subId) handleSessionStart(subId, data.cwd || '', 0, false, true, 'Working', sessionId);
+      break;
+    }
+
+    case 'SubagentStop': {
+      const subId = data.subagent_session_id || data.agent_id;
+      if (subId) handleSessionEnd(subId);
+      break;
+    }
+
+    case 'TeammateIdle': {
+      // 에이전트 팀 멤버가 작업을 멈추고 기다리는 중 -> Waiting
+      if (agentManager) {
+        const agent = agentManager.getAgent(sessionId);
+        if (agent) agentManager.updateAgent({ ...agent, state: 'Waiting', isTeammate: true }, 'hook');
+        else handleSessionStart(sessionId, data.cwd || '', 0, true); // 신규 팀원 감지 시
+      }
+      break;
+    }
+
+    case 'ConfigChange':
+    case 'WorktreeCreate':
+    case 'WorktreeRemove':
+    case 'PreCompact':
+      debugLog(`[Hook] Meta info: ${event} for ${sessionId.slice(0, 8)}`);
+      break;
+
+    default:
+      debugLog(`[Hook] Unknown: ${event} — ${JSON.stringify(data).slice(0, 150)}`);
+  }
+}
+
 function startHookServer() {
   const http = require('http');
 
@@ -252,125 +374,7 @@ function startHookServer() {
 
       try {
         const data = JSON.parse(body);
-        const event = data.hook_event_name;
-        const sessionId = data.session_id || data.sessionId;
-        if (!sessionId) return;
-
-        debugLog(`[Hook] ${event} session=${sessionId.slice(0, 8)}`);
-
-        switch (event) {
-          case 'SessionStart':
-            handleSessionStart(sessionId, data.cwd || '', data._pid || 0);
-            break;
-
-          case 'SessionEnd':
-            handleSessionEnd(sessionId);
-            break;
-
-          case 'UserPromptSubmit':
-            // 사용자가 메시지 제출 → Working (도구 없는 순수 대화도 포함)
-            { const t = postToolIdleTimers.get(sessionId); if (t) clearTimeout(t); postToolIdleTimers.delete(sessionId); }
-            firstPreToolUseDone.delete(sessionId);
-            if (agentManager) {
-              const agent = agentManager.getAgent(sessionId);
-              if (agent) {
-                agentManager.updateAgent({ ...agent, sessionId, state: 'Working' }, 'hook');
-              } else {
-                // 복구에 실패했거나 30분 지나서 삭제된 경우, 다시 훅이 오면 새 세션으로 생성
-                debugLog(`[Hook] auto-creating agent for existing session: ${sessionId.slice(0, 8)}`);
-                handleSessionStart(sessionId, data.cwd || '');
-                // 생성 직후 상태 업데이트를 위해 다시 가져옴
-                setTimeout(() => {
-                  const newAgent = agentManager.getAgent(sessionId);
-                  if (newAgent) agentManager.updateAgent({ ...newAgent, state: 'Working' }, 'hook');
-                }, 100);
-              }
-            }
-            break;
-
-          case 'Stop':
-          case 'TaskCompleted':
-            // Claude 응답 완료 → Done (타이머도 취소)
-            { const t = postToolIdleTimers.get(sessionId); if (t) clearTimeout(t); postToolIdleTimers.delete(sessionId); }
-            firstPreToolUseDone.delete(sessionId);
-            if (agentManager) {
-              const agent = agentManager.getAgent(sessionId);
-              if (agent) {
-                agentManager.updateAgent({ ...agent, sessionId, state: 'Done' }, 'hook');
-              } else {
-                handleSessionStart(sessionId, data.cwd || '');
-              }
-            }
-            break;
-
-          case 'PreToolUse': {
-            // idle 타이머 취소
-            const prev = postToolIdleTimers.get(sessionId);
-            if (prev) clearTimeout(prev);
-            postToolIdleTimers.delete(sessionId);
-            // 첫 PreToolUse: 세션 초기화 탐색 → 무시 (UserPromptSubmit 못 왜을 때 보험)
-            if (!firstPreToolUseDone.has(sessionId)) {
-              firstPreToolUseDone.set(sessionId, true);
-              debugLog(`[Hook] PreToolUse ignored (first = session init)`);
-            } else if (agentManager) {
-              const agent = agentManager.getAgent(sessionId);
-              if (agent) agentManager.updateAgent({ ...agent, sessionId, state: 'Working' }, 'hook');
-            }
-            break;
-          }
-
-          case 'PostToolUse': {
-            if (agentManager && firstPreToolUseDone.has(sessionId)) {
-              const agent = agentManager.getAgent(sessionId);
-              if (agent) agentManager.updateAgent({ ...agent, sessionId, state: 'Working' }, 'hook');
-            }
-            scheduleIdleDone(sessionId);
-            break;
-          }
-
-          case 'PostToolUseFailure':
-          case 'Notification':
-          case 'PermissionRequest':
-            // 도구 실패 / 알림 / 권한 요청 → Help
-            { const t = postToolIdleTimers.get(sessionId); if (t) clearTimeout(t); postToolIdleTimers.delete(sessionId); }
-            if (agentManager) {
-              const agent = agentManager.getAgent(sessionId);
-              if (agent) agentManager.updateAgent({ ...agent, sessionId, state: 'Help' }, 'hook');
-            }
-            break;
-
-          case 'SubagentStart': {
-            const subId = data.subagent_session_id || data.agent_id;
-            if (subId) handleSessionStart(subId, data.cwd || '', 0, false, true, 'Working', sessionId);
-            break;
-          }
-
-          case 'SubagentStop': {
-            const subId = data.subagent_session_id || data.agent_id;
-            if (subId) handleSessionEnd(subId);
-            break;
-          }
-
-          case 'TeammateIdle': {
-            // 에이전트 팀 멤버가 작업을 멈추고 기다리는 중 -> Waiting
-            if (agentManager) {
-              const agent = agentManager.getAgent(sessionId);
-              if (agent) agentManager.updateAgent({ ...agent, state: 'Waiting', isTeammate: true }, 'hook');
-              else handleSessionStart(sessionId, data.cwd || '', 0, true); // 신규 팀원 감지 시
-            }
-            break;
-          }
-
-          case 'ConfigChange':
-          case 'WorktreeCreate':
-          case 'WorktreeRemove':
-          case 'PreCompact':
-            debugLog(`[Hook] Meta info: ${event} for ${sessionId.slice(0, 8)}`);
-            break;
-
-          default:
-            debugLog(`[Hook] Unknown: ${event} — ${JSON.stringify(data).slice(0, 150)}`);
-        }
+        processHookEvent(data);
       } catch (e) {
         debugLog(`[Hook] Parse error: ${e.message}`);
       }
@@ -383,164 +387,103 @@ function startHookServer() {
   });
 }
 // =====================================================
-// 앱 재시작 시 기존 활성 세션 복구 및 PID 매칭 (1회 실행)
+// 앱 재시작 시 활성 세션 복구 및 PID 매칭 (영구 저장소 활용)
 // =====================================================
+function getPersistedStatePath() {
+  return path.join(os.homedir(), '.pixel-agent-desk', 'state.json');
+}
+
+function savePersistedState() {
+  if (!agentManager) return;
+  const statePath = getPersistedStatePath();
+  const dir = path.dirname(statePath);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+
+  const agents = agentManager.getAllAgents();
+  const state = {
+    agents: agents,
+    pids: Array.from(sessionPids.entries())
+  };
+  fs.writeFileSync(statePath, JSON.stringify(state, null, 2), 'utf-8');
+}
+
 function recoverExistingSessions() {
   if (!agentManager) return;
-  const { execFile } = require('child_process');
+  const statePath = getPersistedStatePath();
 
-  // 1. 현재 살아있는 claude 프로세스 PID 목록 조회
-  const psCmd = `Get-CimInstance Win32_Process -Filter "Name='node.exe'" -ErrorAction SilentlyContinue | Where-Object { $_.CommandLine -like '*claude*cli.js*' } | Select-Object -ExpandProperty ProcessId`;
+  if (!fs.existsSync(statePath)) {
+    debugLog('[Recover] No persisted state found.');
+    return;
+  }
 
-  execFile('powershell.exe', ['-NoProfile', '-Command', psCmd], { timeout: 8000 }, (err, stdout) => {
-    const livePids = [];
-    if (!err && stdout) {
-      livePids.push(...stdout.trim().split('\n').map(p => parseInt(p.trim(), 10)).filter(p => !isNaN(p) && p > 0));
-    }
+  try {
+    const raw = fs.readFileSync(statePath, 'utf-8');
+    const state = JSON.parse(raw);
+    const savedAgents = state.agents || [];
+    const savedPids = new Map((state.pids || []));
 
-    if (livePids.length === 0) {
-      debugLog('[Recover] No running Claude processes found.');
-      return;
-    }
+    let recoveredCount = 0;
+    for (const agent of savedAgents) {
+      const pid = savedPids.get(agent.id);
 
-    debugLog(`[Recover] Found ${livePids.length} Claude process(es). Scanning JSONL for matching sessions...`);
-
-    // 2. ~/.claude/projects/ 스캔 (30분 조건 제외, 최신 파일부터 위에서 컷)
-    const projectsDir = require('path').join(require('os').homedir(), '.claude', 'projects');
-    if (!require('fs').existsSync(projectsDir)) return;
-
-    const candidates = [];
-    try {
-      for (const projectEntry of require('fs').readdirSync(projectsDir, { withFileTypes: true })) {
-        if (!projectEntry.isDirectory()) continue;
-        const projectPath = require('path').join(projectsDir, projectEntry.name);
-
-        for (const file of require('fs').readdirSync(projectPath)) {
-          if (!file.endsWith('.jsonl')) continue;
-          const filePath = require('path').join(projectPath, file);
-          try {
-            const stat = require('fs').statSync(filePath);
-            candidates.push({ filePath, mtime: stat.mtimeMs, size: stat.size, projectPath });
-          } catch (e) { }
+      let isAlive = false;
+      if (pid) {
+        try {
+          process.kill(pid, 0);
+          isAlive = true;
+        } catch (e) {
+          isAlive = false;
         }
       }
 
-      // 최신 수정 시간(mtime) 순으로 정렬
-      candidates.sort((a, b) => b.mtime - a.mtime);
+      if (isAlive) {
+        sessionPids.set(agent.id, pid);
+        firstPreToolUseDone.set(agent.id, true);
 
-      const recoveredSessions = [];
-      let matchedMainCount = 0;
+        agentManager.updateAgent({
+          sessionId: agent.id,
+          projectPath: agent.projectPath,
+          displayName: agent.displayName,
+          state: agent.state,
+          jsonlPath: agent.jsonlPath,
+          isTeammate: agent.isTeammate,
+          isSubagent: agent.isSubagent,
+          parentId: agent.parentId
+        }, 'recover');
 
-      for (const candidate of candidates) {
-        if (matchedMainCount >= livePids.length) break; // 살아있는 프로세스 수만큼 찾음
+        recoveredCount++;
+        debugLog(`[Recover] Restored: ${agent.id.slice(0, 8)} (${agent.displayName}) state=${agent.state} sub=${agent.isSubagent} pid=${pid}`);
+      } else {
+        debugLog(`[Recover] Skipped dead agent: ${agent.id.slice(0, 8)}`);
+      }
+    }
 
+    debugLog(`[Recover] Done — ${recoveredCount} session(s) restored from state.json`);
+  } catch (e) {
+    debugLog(`[Recover] Error reading or parsing state.json: ${e.message}`);
+  }
+
+  // 2. 앱 종료 중 / 비활성화 중 기록된 훅 내역(오프라인 로그)을 순서대로 리플레이
+  const hooksPath = path.join(os.homedir(), '.pixel-agent-desk', 'hooks.jsonl');
+  if (fs.existsSync(hooksPath)) {
+    try {
+      debugLog(`[Recover] Replaying offline hooks from hooks.jsonl...`);
+      const lines = fs.readFileSync(hooksPath, 'utf-8').split('\n');
+      for (const line of lines) {
+        if (!line.trim()) continue;
         try {
-          const readSize = Math.min(candidate.size, 65536); // 파일 끝 64KB로 넉넉하게 스캔
-          const buf = Buffer.alloc(readSize);
-          const fd = require('fs').openSync(candidate.filePath, 'r');
-          require('fs').readSync(fd, buf, 0, readSize, candidate.size - readSize);
-          require('fs').closeSync(fd);
-
-          const lines = buf.toString('utf-8').split('\n').filter(l => l.trim());
-          const sessionMap = new Map();
-
-          for (const line of lines) {
-            try {
-              const obj = JSON.parse(line);
-              const event = obj.subtype || obj.hook_event_name;
-              const sId = obj.sessionId || obj.session_id;
-
-              if (sId) {
-                if (!sessionMap.has(sId)) {
-                  sessionMap.set(sId, {
-                    sessionId: sId,
-                    cwd: obj.cwd || candidate.projectPath,
-                    filePath: candidate.filePath,
-                    hasSessionEnd: false,
-                    isSubagent: false,
-                    isTeammate: false,
-                    state: 'Waiting' // 기본값
-                  });
-                }
-                const s = sessionMap.get(sId);
-                if (obj.cwd) s.cwd = obj.cwd;
-
-                if (event === 'SessionEnd') s.hasSessionEnd = true;
-                else if (event === 'UserPromptSubmit' || event === 'PreToolUse' || event === 'PostToolUse') s.state = 'Working';
-                else if (event === 'Stop' || event === 'TaskCompleted') s.state = 'Done';
-                else if (event === 'TeammateIdle') { s.state = 'Waiting'; s.isTeammate = true; }
-                else if (event === 'PostToolUseFailure' || event === 'PermissionRequest' || event === 'Notification') s.state = 'Help';
-                else if (event === 'SubagentStart') {
-                  const subId = obj.subagent_session_id || obj.agent_id;
-                  if (subId) {
-                    if (!sessionMap.has(subId)) {
-                      sessionMap.set(subId, { sessionId: subId, cwd: s.cwd, filePath: candidate.filePath, hasSessionEnd: false, isSubagent: true, isTeammate: false, state: 'Working', parentId: sId });
-                    } else {
-                      sessionMap.get(subId).isSubagent = true;
-                      sessionMap.get(subId).state = 'Working';
-                      sessionMap.get(subId).parentId = sId;
-                    }
-                  }
-                } else if (event === 'SubagentStop') {
-                  const subId = obj.subagent_session_id || obj.agent_id;
-                  if (subId && sessionMap.has(subId)) sessionMap.get(subId).hasSessionEnd = true;
-                }
-              }
-            } catch (e) { }
-          }
-
-          let foundMainInFile = false;
-          const activeSessionsInFile = Array.from(sessionMap.values()).filter(s => !s.hasSessionEnd && !agentManager.getAgent(s.sessionId));
-
-          for (const s of activeSessionsInFile) {
-            recoveredSessions.push(s);
-            if (!s.isSubagent && !s.isTeammate) {
-              s.needsPid = true; // 메인 에이전트라서 WMI PID 부여 타겟
-              foundMainInFile = true;
-            }
-          }
-
-          if (foundMainInFile) matchedMainCount++;
-
+          const data = JSON.parse(line);
+          processHookEvent(data);
         } catch (e) { }
       }
 
-      // 3. 복구된 세션 등록 + PID 매핑
-      let pidIndex = 0;
-      for (const s of recoveredSessions) {
-        const { sessionId, cwd, filePath, state, isSubagent, isTeammate, needsPid, parentId } = s;
-
-        let pid = 0;
-        if (needsPid && pidIndex < livePids.length) {
-          pid = livePids[pidIndex++];
-          sessionPids.set(sessionId, pid);
-        }
-
-        const displayName = cwd ? require('path').basename(cwd) : 'Agent';
-
-        // 기존 세션은 초기화 완료 (탐색 무시)
-        firstPreToolUseDone.set(sessionId, true);
-
-        const recoveredAgent = agentManager.updateAgent({
-          sessionId,
-          projectPath: cwd,
-          displayName,
-          state: state, // 로그 읽어낸 마지막 상태 반영
-          jsonlPath: filePath,
-          isTeammate,
-          isSubagent,
-          parentId
-        }, 'recover');
-
-        if (recoveredAgent) recoveredAgent.firstSeen = Date.now() - 30000;
-        debugLog(`[Recover] Restored: ${sessionId.slice(0, 8)} (${displayName}) state=${state} sub=${isSubagent} pid=${pid || 'none'}`);
-      }
-      debugLog(`[Recover] Done — ${recoveredSessions.length} session(s) with real PIDs`);
-
+      // 리플레이가 끝났으므로 파일 비우기
+      fs.writeFileSync(hooksPath, '');
+      debugLog(`[Recover] Finished replaying hooks.jsonl and cleared it.`);
     } catch (e) {
-      debugLog(`[Recover] Error: ${e.message}`);
+      debugLog(`[Recover] Error replaying hooks.jsonl: ${e.message}`);
     }
-  });
+  }
 }
 
 // =====================================================
@@ -680,6 +623,7 @@ app.whenReady().then(() => {
         mainWindow.webContents.send('agent-added', agent);
         resizeWindowForAgents(agentManager.getAllAgents());
       }
+      savePersistedState();
     });
 
     agentManager.on('agent-updated', (agent) => {
@@ -688,6 +632,7 @@ app.whenReady().then(() => {
         // 상태 변화로 Sub/Team이 생기면 창 크기가 달라질 수 있으므로 업데이트
         resizeWindowForAgents(agentManager.getAllAgents());
       }
+      savePersistedState();
     });
 
     agentManager.on('agent-removed', (data) => {
@@ -695,6 +640,7 @@ app.whenReady().then(() => {
         mainWindow.webContents.send('agent-removed', data);
         resizeWindowForAgents(agentManager.getAllAgents());
       }
+      savePersistedState();
     });
 
     agentManager.on('agents-cleaned', (data) => {
@@ -702,6 +648,7 @@ app.whenReady().then(() => {
         mainWindow.webContents.send('agents-cleaned', data);
         resizeWindowForAgents(agentManager.getAllAgents());
       }
+      savePersistedState();
     });
 
     // 준비 전에 도착했던 세션 및 복구된 데이터 전송
