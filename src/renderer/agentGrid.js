@@ -33,7 +33,7 @@ function updateAgent(agent) {
   }
 
   updateAgentState(agent.id, card, agent);
-  updateGridLayout();
+  // 상태 변경은 그리드 레이아웃(열/행 배치)에 영향 없음 — updateGridLayout 생략
 }
 
 function removeAgent(data) {

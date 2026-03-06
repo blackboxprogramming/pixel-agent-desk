@@ -6,6 +6,10 @@ const animationManager = {
   animations: new Map(), // agentId -> { agentId, element, animName, sequence, frameIdx, lastTime, rafId }
 
   start(agentId, element, animName) {
+    // 이미 동일 애니메이션 실행 중이면 재시작하지 않음 (rAF 중단 → 깜빡임 방지)
+    const existing = this.animations.get(agentId);
+    if (existing && existing.animName === animName) return;
+
     this.stop(agentId);
 
     const sequence = ANIM_SEQUENCES[animName];
