@@ -197,7 +197,47 @@ function updateGridLayout() {
     col++;
   });
 
+  // Group remaining items by teamName
+  const teamGroups = new Map();
+  const noTeam = [];
   fallbackSubList.forEach(s => {
+    const tn = s.data.teamName;
+    if (tn) {
+      if (!teamGroups.has(tn)) teamGroups.set(tn, []);
+      teamGroups.get(tn).push(s);
+    } else {
+      noTeam.push(s);
+    }
+  });
+
+  // Render team groups (same layout as main+subs)
+  teamGroups.forEach((members) => {
+    if (col > 10) {
+      col = 1;
+      currentRow = maxRowInBatch + 1;
+      maxRowInBatch = currentRow;
+    }
+
+    const bgBox = document.createElement('div');
+    bgBox.className = 'agent-party-bg';
+    bgBox.style.gridColumn = col;
+    bgBox.style.gridRow = `${currentRow} / span ${members.length}`;
+    agentGrid.appendChild(bgBox);
+
+    members.forEach((m, idx) => {
+      const row = currentRow + idx;
+      m.card.classList.remove('group-start');
+      m.card.style.gridColumn = col;
+      m.card.style.gridRow = row;
+      agentGrid.appendChild(m.card);
+      if (row > maxRowInBatch) maxRowInBatch = row;
+    });
+
+    col++;
+  });
+
+  // Remaining standalone cards (no team)
+  noTeam.forEach(s => {
     if (col > 10) {
       col = 1;
       currentRow = maxRowInBatch + 1;

@@ -70,12 +70,6 @@ function startHookServer({ processHookEvent, debugLog, HOOK_SERVER_PORT, errorHa
         // P1-3: Validate JSON schema
         const isValid = validateHook(data);
         if (!isValid) {
-          errorHandler.capture(new Error('Invalid hook data'), {
-            code: 'E010',
-            category: 'VALIDATION',
-            severity: 'WARNING',
-            details: validateHook.errors
-          });
           debugLog(`[Hook] Validation FAILED for ${data.hook_event_name}: ${JSON.stringify(validateHook.errors)}`);
           return;
         }

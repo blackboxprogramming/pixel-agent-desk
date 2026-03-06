@@ -128,6 +128,32 @@ function createHookProcessor({ agentManager, sessionPids, debugLog, detectClaude
             }
           }
         }
+
+        // PID reconnect: echo $$ triggers transcript-based PID re-detection
+        if (data.tool_name === 'Bash' && data.tool_input &&
+            /echo\s+\$(\$|PPID)/.test((data.tool_input.command || ''))) {
+          const agent = agentManager && agentManager.getAgent(sessionId);
+          const jsonlPath = (agent && agent.jsonlPath) || data.transcript_path || null;
+          debugLog(`[Hook] PID reconnect trigger: ${sessionId.slice(0, 8)} (echo detected)`);
+          // Reset firstSeen to prevent premature removal while re-detecting
+          if (agent && !sessionPids.has(sessionId)) {
+            agentManager.updateAgent({ ...agent, firstSeen: Date.now() }, 'hook');
+          }
+          detectClaudePidByTranscript(jsonlPath, (result) => {
+            if (typeof result === 'number') {
+              sessionPids.set(sessionId, result);
+              debugLog(`[Hook] PID reconnected: ${sessionId.slice(0, 8)} → pid=${result}`);
+            } else if (Array.isArray(result)) {
+              const registeredPids = new Set(sessionPids.values());
+              const newPid = result.find(p => !registeredPids.has(p));
+              if (newPid) {
+                sessionPids.set(sessionId, newPid);
+                debugLog(`[Hook] PID reconnected (fallback): ${sessionId.slice(0, 8)} → pid=${newPid}`);
+              }
+            }
+          });
+        }
+
         break;
       }
 
@@ -212,7 +238,8 @@ function createHookProcessor({ agentManager, sessionPids, debugLog, detectClaude
         if (agentManager) {
           const agent = agentManager.getAgent(sessionId);
           if (agent) {
-            agentManager.updateAgent({ ...agent, sessionId, state: 'Thinking' }, 'hook');
+            // Reset firstSeen to extend liveness grace period during compact
+            agentManager.updateAgent({ ...agent, sessionId, state: 'Thinking', firstSeen: Date.now() }, 'hook');
           }
         }
         break;

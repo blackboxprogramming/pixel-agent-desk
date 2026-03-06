@@ -122,6 +122,34 @@
       gap: 12px;
     }
 
+    .header-cost {
+      font-family: var(--font-body);
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--color-warning);
+      padding: 6px 12px;
+      background: var(--color-bg-deep);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+    }
+
+    .settings-btn {
+      background: none;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      padding: 6px 10px;
+      cursor: pointer;
+      font-size: 1rem;
+      color: var(--color-text-muted);
+      transition: all 0.2s ease;
+    }
+
+    .settings-btn:hover {
+      background: var(--color-card-hover);
+      color: var(--color-text);
+      border-color: var(--color-border-active);
+    }
+
     .connection-status {
       display: flex;
       align-items: center;
@@ -212,17 +240,13 @@
       border-right: none;
     }
 
-    .live-feed {
-      flex: 1;
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-      min-height: 0;
-      /* prevent flex container overflow */
+    /* Status Summary (sidebar) */
+    .status-summary {
+      padding: 16px 20px;
     }
 
-    .live-feed-title {
-      padding: 0 20px 12px;
+    .status-summary-title {
+      padding: 0 0 12px;
       font-family: var(--font-body);
       font-size: 0.65rem;
       font-weight: 600;
@@ -231,58 +255,16 @@
       color: var(--color-text-muted);
     }
 
-    .live-feed-list {
-      flex: 1;
-      overflow-y: auto;
-      overflow-x: hidden;
-      padding: 0 10px;
-      min-height: 0;
-      /* prevent flex child overflow */
-    }
-
-    .live-feed-list::-webkit-scrollbar {
-      width: 4px;
-    }
-
-    .live-feed-list::-webkit-scrollbar-track {
-      background: transparent;
-    }
-
-    .live-feed-list::-webkit-scrollbar-thumb {
-      background: var(--color-border);
-      border-radius: 2px;
-    }
-
-    .live-feed-item {
-      padding: 8px 10px;
-      margin-bottom: 4px;
-      background: var(--color-bg);
-      border-radius: var(--radius-sm);
-      font-size: 0.75rem;
-      animation: slideIn 0.3s ease;
-    }
-
-    @keyframes slideIn {
-      from {
-        opacity: 0;
-        transform: translateX(-10px);
-      }
-
-      to {
-        opacity: 1;
-        transform: translateX(0);
-      }
-    }
-
-    .live-feed-item .time {
+    .status-summary-content {
       font-family: var(--font-body);
+      font-size: 0.8rem;
       color: var(--color-text-muted);
-      font-size: 0.65rem;
+      line-height: 2;
     }
 
-    .live-feed-item .message {
+    .status-summary-content .value {
       color: var(--color-text);
-      margin-top: 2px;
+      font-weight: 600;
     }
 
     /* Main Content */
@@ -972,6 +954,92 @@
     .heatmap-tooltip .tt-value {
       font-weight: 600;
     }
+
+    /* ─── Settings Modal ─── */
+    .settings-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.6);
+      z-index: 1000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .settings-overlay.open {
+      display: flex;
+    }
+
+    .settings-modal {
+      background: var(--color-card);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius);
+      padding: 24px;
+      width: 420px;
+      max-width: 90vw;
+      box-shadow: var(--shadow-lg);
+    }
+
+    .settings-modal h2 {
+      font-family: var(--font-body);
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--color-text);
+      margin-bottom: 20px;
+    }
+
+    .settings-group {
+      margin-bottom: 16px;
+    }
+
+    .settings-group label {
+      display: block;
+      font-family: var(--font-body);
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--color-text);
+      margin-bottom: 6px;
+    }
+
+    .settings-group .settings-desc {
+      font-size: 0.75rem;
+      color: var(--color-text-muted);
+      margin-bottom: 8px;
+      line-height: 1.6;
+    }
+
+    .settings-group select {
+      width: 100%;
+      padding: 8px 12px;
+      background: var(--color-bg);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      color: var(--color-text);
+      font-family: var(--font-body);
+      font-size: 0.85rem;
+    }
+
+    .settings-close {
+      margin-top: 16px;
+      width: 100%;
+      padding: 10px;
+      background: var(--color-primary);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-family: var(--font-body);
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s ease;
+    }
+
+    .settings-close:hover {
+      opacity: 0.9;
+    }
   </style>
 </head>
 
@@ -986,6 +1054,8 @@
         </div>
       </div>
       <div class="header-right">
+        <span class="header-cost" id="headerCost">💰 $0.00</span>
+        <button class="settings-btn" onclick="openSettings()" title="Settings">⚙️</button>
         <div class="connection-status" role="status" aria-live="polite">
           <span class="status-indicator" id="statusIndicator" aria-hidden="true"></span>
           <span id="connectionStatus">Connecting...</span>
@@ -1006,28 +1076,20 @@
           <span>🏢</span>
           <span>Office</span>
         </div>
-        <div class="nav-item" data-view="overview">
-          <span>📊</span>
-          <span>Overview</span>
-        </div>
         <div class="nav-item" data-view="agents">
           <span>👥</span>
           <span>Agents</span>
         </div>
-        <div class="nav-item" data-view="tokens">
-          <span>💰</span>
-          <span>Tokens</span>
-        </div>
         <div class="nav-item" data-view="heatmap">
           <span>📅</span>
-          <span>Activity Log</span>
+          <span>History</span>
         </div>
       </div>
 
-      <div class="live-feed">
-        <div class="live-feed-title">Live Events</div>
-        <div class="live-feed-list" id="liveFeedList">
-          <!-- Live feed items will be inserted here -->
+      <div class="status-summary">
+        <div class="status-summary-title">Status</div>
+        <div class="status-summary-content" id="statusSummary">
+          Active: <span class="value">0</span> agents | Cost: <span class="value">$0.00</span> | Last event: <span class="value">-</span>
         </div>
       </div>
     </aside>
@@ -1037,7 +1099,7 @@
       <canvas id="office-canvas"></canvas>
     </div>
 
-    <!-- Main Content (Dashboard/Agents/Tokens/Heatmap) -->
+    <!-- Main Content (Dashboard/Agents/Heatmap) -->
     <main class="main-content" id="mainContent" style="display:none">
       <div class="loading">
         <div class="loading-spinner"></div>
@@ -1048,6 +1110,22 @@
 
   <!-- Heatmap Tooltip (global, position: fixed) -->
   <div class="heatmap-tooltip" id="heatmapTooltip"></div>
+
+  <!-- Settings Modal -->
+  <div class="settings-overlay" id="settingsOverlay">
+    <div class="settings-modal">
+      <h2>⚙️ Settings</h2>
+      <div class="settings-group">
+        <label for="autoHideTimeout">Auto-hide Timeout</label>
+        <div class="settings-desc">에이전트 비활성 후 아바타가 숨겨지는 시간. 재활동 시 자동 복원.</div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <input type="number" id="autoHideTimeout" min="2" max="86400" value="2" style="width:80px;padding:8px 12px;background:var(--color-bg);border:1px solid var(--color-border);border-radius:var(--radius-sm);color:var(--color-text);font-family:var(--font-body);font-size:0.85rem;text-align:right;">
+          <span style="font-family:var(--font-body);font-size:0.85rem;color:var(--color-text-muted);">sec</span>
+        </div>
+      </div>
+      <button class="settings-close" onclick="closeSettings()">Close</button>
+    </div>
+  </div>
 
   <!-- Office modules (v2: avatar sync) -->
   <script src="/src/office/office-config.js?v=2"></script>
@@ -1083,7 +1161,6 @@
     // DOM elements
     const elements = {
       mainContent: document.getElementById('mainContent'),
-      liveFeedList: document.getElementById('liveFeedList'),
       statusIndicator: document.getElementById('statusIndicator'),
       connectionStatus: document.getElementById('connectionStatus')
     };
@@ -1093,6 +1170,7 @@
      */
     let _sseReconnectDelay = 1000;
     let _sseEventSource = null;
+    let _lastEventTime = 0;
 
     function connectSSE() {
       // Clean up existing connection
@@ -1108,13 +1186,13 @@
         _sseReconnectDelay = 1000; // Reset delay on successful reconnection
         state.connected = true;
         updateConnectionStatus(true);
-        addLiveFeed('System', 'Connected to dashboard');
+        _lastEventTime = Date.now();
+        updateStatusSummary();
       };
 
       eventSource.onerror = () => {
         state.connected = false;
         updateConnectionStatus(false);
-        addLiveFeed('System', 'Connection lost. Reconnecting...');
 
         // Close EventSource and manually reconnect (exponential backoff)
         eventSource.close();
@@ -1135,7 +1213,8 @@
         const data = payload.data;
         updateAgent(data);
         officeOnAgentCreated(data);
-        addLiveFeed('Created', `Agent ${data.name || 'Agent'} has been created`);
+        _lastEventTime = Date.now();
+        updateStatusSummary();
       });
 
       eventSource.addEventListener('agent.updated', (event) => {
@@ -1150,7 +1229,8 @@
         const data = payload.data;
         removeAgent(data.id);
         officeOnAgentRemoved(data);
-        addLiveFeed('Removed', `Agent has been removed (${data.id?.slice(0, 8)}...)`);
+        _lastEventTime = Date.now();
+        updateStatusSummary();
       });
     }
 
@@ -1192,7 +1272,7 @@
 
       // in-place DOM update: replace existing card if found, otherwise full render
       const existingCard = document.querySelector(`[data-card-id="${agent.id}"]`);
-      if (existingCard && (state.currentView === 'overview' || state.currentView === 'agents')) {
+      if (existingCard && state.currentView === 'agents') {
         const temp = document.createElement('div');
         temp.innerHTML = renderAgentCard(agent);
         const newCard = temp.firstElementChild;
@@ -1240,6 +1320,9 @@
       state.stats.totalCost = agents.reduce((sum, a) =>
         sum + (a.tokenUsage?.estimatedCost || 0), 0
       );
+
+      updateStatusSummary();
+      updateHeaderCost();
     }
 
     /**
@@ -1261,29 +1344,33 @@
     }
 
     /**
-     * Add live feed entry
+     * Update sidebar status summary
      */
-    function addLiveFeed(type, message) {
-      const item = document.createElement('div');
-      item.className = 'live-feed-item';
+    function updateStatusSummary() {
+      const el = document.getElementById('statusSummary');
+      if (!el) return;
 
-      const time = new Date().toLocaleTimeString('en-US', {
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit'
-      });
+      const active = state.stats.active;
+      const cost = state.stats.totalCost.toFixed(2);
 
-      item.innerHTML = `
-        <div class="time">${time}</div>
-        <div class="message">[${type}] ${message}</div>
-      `;
-
-      elements.liveFeedList.insertBefore(item, elements.liveFeedList.firstChild);
-
-      // Keep only 30 items max
-      while (elements.liveFeedList.children.length > 30) {
-        elements.liveFeedList.removeChild(elements.liveFeedList.lastChild);
+      let lastEvent = '-';
+      if (_lastEventTime > 0) {
+        const diffSec = Math.floor((Date.now() - _lastEventTime) / 1000);
+        if (diffSec < 60) lastEvent = `${diffSec}s ago`;
+        else if (diffSec < 3600) lastEvent = `${Math.floor(diffSec / 60)}m ago`;
+        else lastEvent = `${Math.floor(diffSec / 3600)}h ago`;
       }
+
+      el.innerHTML = `Active: <span class="value">${active}</span> agents | Cost: <span class="value">$${cost}</span> | Last event: <span class="value">${lastEvent}</span>`;
+    }
+
+    /**
+     * Update header cost display
+     */
+    function updateHeaderCost() {
+      const el = document.getElementById('headerCost');
+      if (!el) return;
+      el.textContent = `💰 $${state.stats.totalCost.toFixed(2)}`;
     }
 
     /**
@@ -1302,26 +1389,54 @@
       officeView.style.display = 'none';
       mainContent.style.display = 'block';
 
-      if (state.currentView === 'overview') {
-        renderOverview();
-      } else if (state.currentView === 'agents') {
+      if (state.currentView === 'agents') {
         renderAgents();
-      } else if (state.currentView === 'tokens') {
-        renderTokens();
       } else if (state.currentView === 'heatmap') {
         renderHeatmap();
       }
     }
 
     /**
-     * Render overview
+     * Render agents view (unified: stats + token chart + project groups)
      */
-    function renderOverview() {
+    function renderAgents() {
       const agents = Array.from(state.agents.values());
 
       if (agents.length === 0) {
         renderEmpty();
         return;
+      }
+
+      // Sort by token usage for chart
+      const sortedAgents = [...agents].sort((a, b) => {
+        const aTokens = (a.tokenUsage?.inputTokens || 0) + (a.tokenUsage?.outputTokens || 0);
+        const bTokens = (b.tokenUsage?.inputTokens || 0) + (b.tokenUsage?.outputTokens || 0);
+        return bTokens - aTokens;
+      });
+
+      const maxTokens = Math.max(...sortedAgents.map(a =>
+        (a.tokenUsage?.inputTokens || 0) + (a.tokenUsage?.outputTokens || 0)
+      ), 1);
+
+      // Group by project
+      const groups = new Map();
+      for (const agent of agents) {
+        const project = agent.projectPath?.split('/').pop() || 'Default';
+        if (!groups.has(project)) groups.set(project, []);
+        groups.get(project).push(agent);
+      }
+
+      let projectHTML = '';
+      for (const [project, projectAgents] of groups) {
+        projectHTML += `
+          <div class="section-header">
+            <h2 class="section-title">📁 ${project}</h2>
+            <span style="color: var(--color-text-muted);">${projectAgents.length} agent(s)</span>
+          </div>
+          <div class="agents-grid" style="margin-bottom: 24px;">
+            ${projectAgents.map(agent => renderAgentCard(agent)).join('')}
+          </div>
+        `;
       }
 
       elements.mainContent.innerHTML = `
@@ -1337,7 +1452,7 @@
           <div class="stat-card">
             <div class="stat-header">
               <span class="stat-icon">⚡</span>
-              <span class="stat-label">Active Agents</span>
+              <span class="stat-label">Active</span>
             </div>
             <div class="stat-value">${state.stats.active}</div>
             <div class="stat-change">Working / Thinking</div>
@@ -1345,10 +1460,10 @@
           <div class="stat-card">
             <div class="stat-header">
               <span class="stat-icon">✅</span>
-              <span class="stat-label">Completed Tasks</span>
+              <span class="stat-label">Completed</span>
             </div>
             <div class="stat-value">${state.stats.completed}</div>
-            <div class="stat-change">Completion rate: ${state.stats.total > 0 ? Math.round(state.stats.completed / state.stats.total * 100) : 0}%</div>
+            <div class="stat-change">Rate: ${state.stats.total > 0 ? Math.round(state.stats.completed / state.stats.total * 100) : 0}%</div>
           </div>
           <div class="stat-card">
             <div class="stat-header">
@@ -1362,102 +1477,9 @@
 
         <div class="section">
           <div class="section-header">
-            <h2 class="section-title">Active Agents</h2>
-          </div>
-          <div class="agents-grid">
-            ${agents.slice(0, 6).map(agent => renderAgentCard(agent)).join('')}
-          </div>
-        </div>
-      `;
-    }
-
-    /**
-     * Render agents view
-     */
-    function renderAgents() {
-      const agents = Array.from(state.agents.values());
-
-      if (agents.length === 0) {
-        renderEmpty();
-        return;
-      }
-
-      // Group by project
-      const groups = new Map();
-      for (const agent of agents) {
-        const project = agent.projectPath?.split('/').pop() || 'Default';
-        if (!groups.has(project)) {
-          groups.set(project, []);
-        }
-        groups.get(project).push(agent);
-      }
-
-      let html = '<div class="section">';
-
-      for (const [project, projectAgents] of groups) {
-        html += `
-          <div class="section-header">
-            <h2 class="section-title">📁 ${project}</h2>
-            <span style="color: var(--color-text-muted);">${projectAgents.length} agent(s)</span>
-          </div>
-          <div class="agents-grid" style="margin-bottom: 24px;">
-            ${projectAgents.map(agent => renderAgentCard(agent)).join('')}
-          </div>
-        `;
-      }
-
-      html += '</div>';
-      elements.mainContent.innerHTML = html;
-    }
-
-    /**
-     * Render tokens view
-     */
-    function renderTokens() {
-      const agents = Array.from(state.agents.values());
-
-      if (agents.length === 0) {
-        renderEmpty();
-        return;
-      }
-
-      // Sort by token usage
-      const sortedAgents = [...agents].sort((a, b) => {
-        const aTokens = (a.tokenUsage?.inputTokens || 0) + (a.tokenUsage?.outputTokens || 0);
-        const bTokens = (b.tokenUsage?.inputTokens || 0) + (b.tokenUsage?.outputTokens || 0);
-        return bTokens - aTokens;
-      });
-
-      const maxTokens = Math.max(...sortedAgents.map(a =>
-        (a.tokenUsage?.inputTokens || 0) + (a.tokenUsage?.outputTokens || 0)
-      ));
-
-      elements.mainContent.innerHTML = `
-        <div class="stats-grid" style="margin-bottom: 24px;">
-          <div class="stat-card" style="grid-column: span 2;">
-            <div class="stat-header">
-              <span class="stat-icon">📈</span>
-              <span class="stat-label">Total Token Usage</span>
-            </div>
-            <div class="stat-value">${formatNumber(state.stats.totalTokens)}</div>
-            <div class="stat-change">Sum of all active sessions</div>
-          </div>
-          <div class="stat-card" style="grid-column: span 2;">
-            <div class="stat-header">
-              <span class="stat-icon">💰</span>
-              <span class="stat-label">Total Estimated Cost</span>
-            </div>
-            <div class="stat-value">$${state.stats.totalCost.toFixed(4)}</div>
-            <div class="stat-change">Based on Claude API billing</div>
-          </div>
-        </div>
-
-        <div class="section">
-          <div class="section-header">
-            <h2 class="section-title">Token Usage Details</h2>
+            <h2 class="section-title">Token Usage by Agent</h2>
           </div>
           <div class="token-chart">
-            <h3 class="chart-title">Token Usage by Agent</h3>
             <div class="chart-bars">
               ${sortedAgents.map(agent => {
         const inputTokens = agent.tokenUsage?.inputTokens || 0;
@@ -1482,12 +1504,7 @@
         </div>
 
         <div class="section">
-          <div class="section-header">
-            <h2 class="section-title">All Agents</h2>
-          </div>
-          <div class="agents-grid">
-            ${sortedAgents.map(agent => renderAgentCard(agent)).join('')}
-          </div>
+          ${projectHTML}
         </div>
       `;
     }
@@ -1981,6 +1998,55 @@
     // Global access (called from onclick)
     window.changeHeatmapMetric = changeHeatmapMetric;
 
+    // ─── Settings ───
+
+    function loadSettings() {
+      try {
+        return JSON.parse(localStorage.getItem('pad-settings') || '{}');
+      } catch { return {}; }
+    }
+
+    function saveSettings(settings) {
+      localStorage.setItem('pad-settings', JSON.stringify(settings));
+    }
+
+    function openSettings() {
+      const overlay = document.getElementById('settingsOverlay');
+      if (overlay) overlay.classList.add('open');
+
+      const settings = loadSettings();
+      const input = document.getElementById('autoHideTimeout');
+      if (input) input.value = settings.autoHideTimeout || 300;
+    }
+
+    function closeSettings() {
+      const overlay = document.getElementById('settingsOverlay');
+      if (overlay) overlay.classList.remove('open');
+    }
+
+    function initSettings() {
+      const input = document.getElementById('autoHideTimeout');
+      if (input) {
+        input.addEventListener('input', () => {
+          const val = Math.max(2, Math.min(86400, parseInt(input.value, 10) || 2));
+          const settings = loadSettings();
+          settings.autoHideTimeout = val;
+          saveSettings(settings);
+        });
+      }
+
+      const overlay = document.getElementById('settingsOverlay');
+      if (overlay) {
+        overlay.addEventListener('click', (e) => {
+          if (e.target === overlay) closeSettings();
+        });
+      }
+    }
+
+    // Global access
+    window.openSettings = openSettings;
+    window.closeSettings = closeSettings;
+
     /**
      * Initialize navigation
      */
@@ -2029,8 +2095,18 @@
      * Initialize
      */
     function init() {
+      // Legacy tab migration: overview/tokens -> agents
+      const savedTab = localStorage.getItem('dashboard-tab');
+      if (savedTab === 'overview' || savedTab === 'tokens') {
+        localStorage.setItem('dashboard-tab', 'agents');
+        state.currentView = 'agents';
+      }
+
       // Initialize navigation
       initNavigation();
+
+      // Initialize settings
+      initSettings();
 
       // Restore saved tab -- sync nav item active class
       const navItems = document.querySelectorAll('.nav-item');
@@ -2047,6 +2123,9 @@
         initOffice();
       }
       render();
+
+      // Status summary refresh timer (relative time update)
+      setInterval(updateStatusSummary, 30000);
     }
 
     // Initialize on DOM load
