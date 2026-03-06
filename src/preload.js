@@ -21,6 +21,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     return new Promise(resolve => ipcRenderer.once('work-area-response', (_, d) => resolve(d)));
   },
   constrainWindow: (bounds) => ipcRenderer.send('constrain-window', bounds),
+  resizeWindow: (size) => ipcRenderer.send('resize-window', size),
   rendererReady: () => ipcRenderer.send('renderer-ready'),
 
   // 에이전트 이벤트

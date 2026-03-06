@@ -37,6 +37,19 @@ if ($hwnd -ne [IntPtr]::Zero) {
 }
 
 function registerIpcHandlers({ agentManager, sessionPids, windowManager, debugLog, adaptAgentToDashboard, errorHandler }) {
+  ipcMain.on('resize-window', (e, size) => {
+    const mw = windowManager.mainWindow;
+    if (!mw || mw.isDestroyed()) return;
+    const { width, height, x, y } = mw.getBounds();
+    const newWidth = Math.max(220, Math.ceil(size.width ? size.width + 30 : width));
+    const newHeight = Math.max(240, Math.ceil(size.height ? size.height + 40 : height));
+    if (newWidth === width && newHeight === height) return;
+    const dh = newHeight - height;
+    const newY = Math.max(0, y - dh);
+    mw.setBounds({ x, y: newY, width: newWidth, height: newHeight });
+    debugLog(`[Main] Resize → ${newWidth}x${newHeight}`);
+  });
+
   ipcMain.on('get-work-area', (event) => {
     event.reply('work-area-response', screen.getPrimaryDisplay().workArea);
   });

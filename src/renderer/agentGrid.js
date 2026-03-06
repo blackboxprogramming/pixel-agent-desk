@@ -17,6 +17,7 @@ function addAgent(agent) {
 
   updateAgentState(agent.id, card, agent);
   updateGridLayout();
+  requestDynamicResize();
 }
 
 function updateAgent(agent) {
@@ -62,6 +63,7 @@ function removeAgent(data) {
   setTimeout(() => {
     card.remove();
     updateGridLayout();
+    requestDynamicResize();
   }, 250);
 }
 
@@ -201,3 +203,18 @@ function updateGridLayout() {
 
 }
 
+// 윈도우 크기 조절 (에이전트 추가/제거 시에만 호출, 500ms 쓰로틀)
+let _resizeTimer = null;
+function requestDynamicResize() {
+  if (!window.electronAPI || !window.electronAPI.resizeWindow) return;
+  if (_resizeTimer) return;
+  _resizeTimer = setTimeout(() => {
+    _resizeTimer = null;
+    const grid = document.getElementById('agent-grid');
+    if (!grid) return;
+    const width = grid.scrollWidth;
+    const height = grid.scrollHeight;
+    if (width < 100 || height < 100) return;
+    window.electronAPI.resizeWindow({ width, height });
+  }, 500);
+}
