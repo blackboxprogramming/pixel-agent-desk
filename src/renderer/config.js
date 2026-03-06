@@ -1,18 +1,18 @@
 /**
- * Renderer Config — 상수, 스프라이트 설정, 상태 맵
+ * Renderer Config — constants, sprite settings, state maps
  */
 
 // --- DOM Elements ---
 const agentGrid = document.getElementById('agent-grid');
 
-// --- 스프라이트 시트 설정 ---
+// --- Sprite sheet settings ---
 const SHEET = {
   cols: 9,
   width: 48,
   height: 64
 };
 
-// --- 애니메이션 시퀀스 ---
+// --- Animation sequences ---
 const ANIM_SEQUENCES = {
   working: { frames: [1, 2, 3, 4], fps: 8, loop: true },
   complete: { frames: [20, 21, 22, 23, 24, 25, 26, 27], fps: 6, loop: true },
@@ -20,7 +20,7 @@ const ANIM_SEQUENCES = {
   alert: { frames: [0, 31], fps: 4, loop: true }
 };
 
-// --- 상태별 맵핑 ---
+// --- State-to-config mapping ---
 const stateConfig = {
   'Working': { anim: 'working', class: 'state-working', label: 'Working...' },
   'Thinking': { anim: 'working', class: 'state-working', label: 'Thinking...' },
@@ -31,11 +31,11 @@ const stateConfig = {
   'Offline': { anim: 'waiting', class: 'state-offline', label: 'Offline' }
 };
 
-// --- 에이전트별 상태 관리 ---
+// --- Per-agent state management ---
 const agentStates = new Map(); // agentId -> { animName, frameIdx, rafId, startTime, timerInterval, lastFormattedTime }
 
-// --- 아바타 관리 ---
-// 오피스 뷰(office-config.js)와 동일한 목록 — 동기화 필수
+// --- Avatar management ---
+// Same list as office view (office-config.js) — must be kept in sync
 const AVATAR_FILES = [
   'avatar_0.webp','avatar_1.webp','avatar_2.webp','avatar_3.webp',
   'avatar_4.webp','avatar_5.webp','avatar_6.webp','avatar_7.webp',
@@ -49,7 +49,7 @@ let availableAvatars = [];
 let idleAvatar = 'avatar_0.webp';
 const agentAvatars = new Map(); // agentId -> avatar filename
 
-/** 에이전트 ID → 결정적 아바타 파일명 (오피스 뷰와 동일 결과) */
+/** Agent ID -> deterministic avatar filename (produces same result as office view) */
 function avatarFromAgentId(id) {
   let hash = 0;
   const str = id || '';

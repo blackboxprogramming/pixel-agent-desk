@@ -44,7 +44,7 @@ function getWindowSizeForAgents(agentsOrCount) {
 
   const CARD_W = 90;
   const GAP = 10;
-  const OUTER = 120 + 20; // 팀 디자인 여백 감안
+  const OUTER = 120 + 20; // Account for team design margins
   const ROW_H = 240;
   const BASE_H = 240;
   const maxCols = 10;
@@ -78,12 +78,12 @@ function getWindowSizeForAgents(agentsOrCount) {
 
     const totalRows = teamRows + soloRows;
     const width = Math.max(220, maxColsInRow * CARD_W + (maxColsInRow - 1) * GAP + OUTER);
-    const height = BASE_H + Math.max(0, totalRows - 1) * ROW_H + (teamRows * 30); // 팀 그룹 여백(padding) 감안
+    const height = BASE_H + Math.max(0, totalRows - 1) * ROW_H + (teamRows * 30); // Account for team group padding
 
     return { width, height };
   }
 
-  // Fallback (agents 배열이 없는 경우 단순 count로 계산)
+  // Fallback (simple count-based calculation when agents array is not available)
   const cols = Math.min(count, maxCols);
   const rows = Math.ceil(count / maxCols);
 

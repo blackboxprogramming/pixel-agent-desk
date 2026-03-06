@@ -1,5 +1,5 @@
 /**
- * Renderer Init — 초기화, visibility 핸들링
+ * Renderer Init — initialization, visibility handling
  */
 
 async function init() {
@@ -11,7 +11,7 @@ async function init() {
   setupKeyboardShortcuts();
   setupContextMenu();
 
-  // 아바타 리스트 로드
+  // Load avatar list
   if (window.electronAPI.getAvatars) {
     try {
       const files = await window.electronAPI.getAvatars();
@@ -28,7 +28,7 @@ async function init() {
     }
   }
 
-  // 대기 아바타 표시
+  // Display idle avatar
   if (idleContainer) {
     idleContainer.style.display = 'flex';
     if (idleCharacter && idleAvatar) {
@@ -37,7 +37,7 @@ async function init() {
     startIdleAnimation();
   }
 
-  // Dashboard button — 아바타 바로 위에 배치 (toolbar 컨테이너)
+  // Dashboard button — placed directly above the avatar (toolbar container)
   const toolbar = document.createElement('div');
   toolbar.className = 'avatar-toolbar';
   toolbar.appendChild(createWebDashboardButton());

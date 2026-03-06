@@ -1,31 +1,31 @@
 /**
- * UI Components — 대시보드 버튼, 키보드 단축키, 컨텍스트 메뉴
+ * UI Components — Dashboard button, keyboard shortcuts, context menu
  */
 
 function createWebDashboardButton() {
   const button = document.createElement('button');
   button.id = 'web-dashboard-btn';
   button.className = 'web-dashboard-btn';
-  button.innerHTML = '🌐 대시보드';
-  button.title = '대시보드 열기 (Ctrl+D)';
+  button.innerHTML = '🌐 Dashboard';
+  button.title = 'Open dashboard (Ctrl+D)';
 
   button.onclick = async () => {
     button.disabled = true;
     const originalHTML = button.innerHTML;
-    button.innerHTML = '⏳ 여는 중...';
+    button.innerHTML = '⏳ Opening...';
 
     try {
       if (window.electronAPI && window.electronAPI.openWebDashboard) {
         const result = await window.electronAPI.openWebDashboard();
 
         if (result.success) {
-          button.innerHTML = '✓ 열림';
+          button.innerHTML = '✓ Opened';
           setTimeout(() => {
-            button.innerHTML = '🌐 대시보드';
+            button.innerHTML = '🌐 Dashboard';
             button.disabled = false;
           }, 2000);
         } else {
-          button.innerHTML = '✗ 실패';
+          button.innerHTML = '✗ Failed';
           console.error('[Renderer] Failed to open dashboard:', result.error);
           setTimeout(() => {
             button.innerHTML = originalHTML;
@@ -39,7 +39,7 @@ function createWebDashboardButton() {
       }
     } catch (error) {
       console.error('[Renderer] Error opening dashboard:', error);
-      button.innerHTML = '✗ 에러';
+      button.innerHTML = '✗ Error';
       setTimeout(() => {
         button.innerHTML = originalHTML;
         button.disabled = false;

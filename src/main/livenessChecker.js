@@ -1,12 +1,12 @@
 /**
  * Liveness Checker
- * PID 탐지, transcript 기반 재확인, 2초 주기 프로세스 생사 체크
+ * PID detection, transcript-based re-verification, 2-second interval process liveness check
  */
 
 const path = require('path');
 const os = require('os');
 
-const sessionPids = new Map(); // sessionId → 실제 claude 프로세스 PID
+const sessionPids = new Map(); // sessionId → actual claude process PID
 
 async function checkLivenessTier1(agentId, pid) {
   try {
@@ -18,7 +18,7 @@ async function checkLivenessTier1(agentId, pid) {
 }
 
 /**
- * transcript_path로 해당 세션의 Claude PID를 정확히 찾는 함수
+ * Function to accurately find the Claude PID for a session using transcript_path
  * Linux/macOS: lsof -t <path>
  * Windows: Restart Manager API (find-file-owner.ps1)
  */
@@ -62,7 +62,7 @@ function detectClaudePidByTranscript(jsonlPath, callback) {
 function detectClaudePidsFallback(callback) {
   const { execFile } = require('child_process');
   if (process.platform === 'win32') {
-    // node.exe만 검색 (Claude Desktop App의 claude.exe 제외)
+    // Search only node.exe (exclude Claude Desktop App's claude.exe)
     const psCmd = `Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | Where-Object { $_.Name -eq 'node.exe' -and $_.CommandLine -like '*claude*' } | Select-Object -ExpandProperty ProcessId`;
     execFile('powershell.exe', ['-NoProfile', '-Command', psCmd], { timeout: 6000 }, (err, stdout) => {
       if (err || !stdout) return callback(null);
@@ -78,7 +78,7 @@ function detectClaudePidsFallback(callback) {
   }
 }
 
-// PID 미등록 에이전트 재탐지 (중복 실행 방지)
+// Re-detect agents with unregistered PIDs (prevent duplicate execution)
 const _pidRetryRunning = new Set();
 function retryPidDetection(sessionId, agentManager, debugLog) {
   if (_pidRetryRunning.has(sessionId) || sessionPids.has(sessionId)) return;
@@ -106,8 +106,8 @@ function retryPidDetection(sessionId, agentManager, debugLog) {
 }
 
 function startLivenessChecker({ agentManager, debugLog }) {
-  const INTERVAL = 2000;   // 2초
-  const GRACE_MS = 10000;  // 등록 후 10초 유예
+  const INTERVAL = 2000;   // 2 seconds
+  const GRACE_MS = 10000;  // 10-second grace period after registration
 
   setInterval(async () => {
     if (!agentManager) return;

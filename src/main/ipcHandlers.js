@@ -1,6 +1,6 @@
 /**
  * IPC Handlers
- * 모든 ipcMain.on/handle 핸들러 등록 + focusTerminalByPid
+ * Register all ipcMain.on/handle handlers + focusTerminalByPid
  */
 
 const { ipcMain, screen } = require('electron');

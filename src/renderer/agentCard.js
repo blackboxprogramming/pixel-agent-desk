@@ -22,7 +22,7 @@ function updateAgentState(agentId, container, agentOrState) {
   const bubble = container.querySelector('.agent-bubble');
   const character = container.querySelector('.agent-character');
 
-  // ARIA 라벨 업데이트
+  // Update ARIA label
   const agentDisplayName = container.querySelector('.agent-name')?.textContent || 'Agent';
   container.setAttribute('aria-label', `${agentDisplayName} - ${config.label}`);
 
@@ -56,7 +56,7 @@ function updateAgentState(agentId, container, agentOrState) {
     agentStates.set(agentId, agentState);
   }
 
-  // Timer element (createAgentCard에서 사전 생성됨)
+  // Timer element (pre-created in createAgentCard)
   const timerEl = container.querySelector('.agent-timer');
 
   // Timer logic
@@ -100,7 +100,7 @@ function updateAgentState(agentId, container, agentOrState) {
     agentState.lastFormattedTime = '';
     if (timerEl) timerEl.style.visibility = 'hidden';
     if (bubble) {
-      // Thinking 상태: animated dots 표시
+      // Thinking state: show animated dots
       if (state === 'Thinking' && !isAggregated) {
         bubble.innerHTML = '<span class="thinking-dots"><span>.</span><span>.</span><span>.</span></span>';
       } else {
@@ -137,7 +137,7 @@ function createAgentCard(agent) {
   const character = document.createElement('div');
   character.className = 'agent-character';
 
-  // 에이전트별 아바타 배정 — 서버 할당 avatarIndex 우선, 폴백: 해시 계산
+  // Assign avatar per agent — server-assigned avatarIndex first, fallback: hash
   let assignedAvatar = agentAvatars.get(agent.id);
   if (!assignedAvatar) {
     if (agent.avatarIndex !== undefined && agent.avatarIndex !== null && AVATAR_FILES[agent.avatarIndex]) {
@@ -152,7 +152,7 @@ function createAgentCard(agent) {
     character.style.backgroundImage = `url('./public/characters/${assignedAvatar}')`;
   }
 
-  // 카드 타입 구분 (배지 및 테두리)
+  // Card type distinction (badge and border)
   let typeLabel = 'Main';
   let typeClass = 'type-main';
   if (agent.isSubagent) {
@@ -164,14 +164,14 @@ function createAgentCard(agent) {
   }
   card.classList.add(typeClass);
 
-  // 상단 배지
+  // Top badge
   const typeTag = document.createElement('span');
   typeTag.className = `type-tag ${typeClass}`;
   typeTag.textContent = typeLabel;
   typeTag.title = agent.projectPath || '';
   card.appendChild(typeTag);
 
-  // 에이전트 이름 — slug 기반 이름만 표시 (프로젝트 폴더명은 생략)
+  // Agent name — show slug-based name only (omit project folder name)
   const nameBadge = document.createElement('div');
   nameBadge.className = 'agent-name';
   const hasSlugName = agent.slug && agent.displayName && agent.displayName !== 'Agent';
@@ -179,7 +179,7 @@ function createAgentCard(agent) {
   nameBadge.title = agent.projectPath || '';
   if (!hasSlugName) nameBadge.style.display = 'none';
 
-  // Timer element (사전 생성 — updateAgentState에서 동적 DOM 삽입 방지)
+  // Timer element (pre-created to avoid dynamic DOM insertion in updateAgentState)
   const timerEl = document.createElement('div');
   timerEl.className = 'agent-timer';
   timerEl.style.visibility = 'hidden';
@@ -190,11 +190,11 @@ function createAgentCard(agent) {
   card.appendChild(character);
   card.appendChild(nameBadge);
 
-  // 터미널 포커스 버튼
+  // Terminal focus button
   const focusBtn = document.createElement('button');
   focusBtn.className = 'focus-terminal-btn';
   focusBtn.innerHTML = '<span class="focus-icon">&#xF0;</span>';
-  focusBtn.title = '터미널 포커스 (클릭하면 해당 터미널로 이동)';
+  focusBtn.title = 'Focus terminal (click to switch to this terminal)';
   focusBtn.setAttribute('aria-label', `Focus terminal for ${agent.displayName || 'Agent'}`);
   focusBtn.onclick = async (e) => {
     e.stopPropagation();
@@ -204,29 +204,29 @@ function createAgentCard(agent) {
         focusBtn.classList.add('clicked');
         setTimeout(() => focusBtn.classList.remove('clicked'), 300);
       } else {
-        // 실패 시 shake 애니메이션
+        // Shake animation on failure
         focusBtn.style.animation = 'shake 0.3s ease';
-        focusBtn.title = 'PID를 찾을 수 없습니다';
+        focusBtn.title = 'Could not find PID';
         setTimeout(() => {
           focusBtn.style.animation = '';
-          focusBtn.title = '터미널 포커스';
+          focusBtn.title = 'Focus terminal';
         }, 1500);
       }
     }
   };
   card.appendChild(focusBtn);
 
-  // 캐릭터 찌르기(Poke) 상호작용
+  // Character poke interaction
   character.style.cursor = 'pointer';
   const pokeMessages = [
-    "앗, 깜짝이야!",
-    "열심히 일하는 중입니다!",
-    "코드 짜는 중...",
-    "커피가 필요해요",
-    "이 부분 버그 아니죠?",
-    "간지러워요!",
-    "제 타수 엄청 빠르죠?",
-    "칭찬해주세요!"
+    "Eek, you startled me!",
+    "Hard at work here!",
+    "Writing code...",
+    "Need more coffee",
+    "This isn't a bug, right?",
+    "That tickles!",
+    "Pretty fast typing, huh?",
+    "Say something nice!"
   ];
 
   let pokeTimeout = null;

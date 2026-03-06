@@ -1,6 +1,6 @@
 /**
  * P0-4: Test Coverage - errorHandler.js Tests
- * 에러 핸들러 핵심 기능 테스트
+ * Core error handler functionality tests
  */
 
 // Mock fs module before requiring errorHandler
@@ -211,7 +211,7 @@ describe('ErrorHandler', () => {
 
       const logs = errorHandler.readRecentLogs();
 
-      expect(logs).toBe('로그 파일이 없어요');
+      expect(logs).toBe('No log file found');
     });
 
     test('handles read errors gracefully', () => {
@@ -222,7 +222,7 @@ describe('ErrorHandler', () => {
 
       const logs = errorHandler.readRecentLogs();
 
-      expect(logs).toContain('로그 읽기 실패');
+      expect(logs).toContain('Failed to read logs');
     });
   });
 

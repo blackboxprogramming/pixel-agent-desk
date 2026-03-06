@@ -1,8 +1,8 @@
 /**
  * Session Scanner — Task 3A-4
- * Mission Control의 claude-sessions.ts 패턴을 Node.js로 구현.
- * transcript_path(JSONL) 파일을 60초마다 파싱해 토큰/비용/세션 통계를 추출하고
- * agentManager에 보완적으로 반영한다.
+ * Node.js implementation of the claude-sessions.ts pattern from Mission Control.
+ * Parses transcript_path (JSONL) files every 60 seconds to extract token/cost/session
+ * statistics and supplements them into the agentManager.
  */
 
 'use strict';
@@ -21,17 +21,17 @@ class SessionScanner {
         this.agentManager = agentManager;
         this.debugLog = debugLog;
         this.scanInterval = null;
-        /** @type {Map<string, SessionStats>} agentId → 마지막 스캔 결과 */
+        /** @type {Map<string, SessionStats>} agentId → last scan result */
         this.lastScanResults = new Map();
     }
 
     /**
-     * 주기적 스캔 시작
-     * @param {number} intervalMs 스캔 주기 (기본 60초)
+     * Start periodic scanning
+     * @param {number} intervalMs Scan interval (default 60 seconds)
      */
     start(intervalMs = 60_000) {
         this.debugLog('[SessionScanner] Started');
-        this.scanAll(); // 즉시 1회 실행
+        this.scanAll(); // Run once immediately
         this.scanInterval = setInterval(() => this.scanAll(), intervalMs);
     }
 
@@ -43,7 +43,7 @@ class SessionScanner {
         this.debugLog('[SessionScanner] Stopped');
     }
 
-    /** 모든 에이전트의 JSONL을 스캔해 통계 갱신 */
+    /** Scan all agents' JSONL files and update statistics */
     scanAll() {
         if (!this.agentManager) return;
         const agents = this.agentManager.getAllAgents();
@@ -58,7 +58,7 @@ class SessionScanner {
 
                 this.lastScanResults.set(agent.id, stats);
 
-                // 훅에서 수집된 토큰보다 JSONL 파싱 값이 더 많으면 보완
+                // Supplement if JSONL parsed values exceed tokens collected from hooks
                 const cur = agent.tokenUsage || { inputTokens: 0, outputTokens: 0, estimatedCost: 0 };
                 if (stats.inputTokens > cur.inputTokens || stats.outputTokens > cur.outputTokens) {
                     this.agentManager.updateAgent({
@@ -68,7 +68,7 @@ class SessionScanner {
                             outputTokens: stats.outputTokens,
                             estimatedCost: stats.estimatedCost,
                         },
-                        // 모델 정보가 누락된 경우 JSONL에서 보충
+                        // Supplement model info from JSONL if missing
                         model: agent.model || stats.model || null,
                     }, 'scanner');
                     updated++;
@@ -84,12 +84,12 @@ class SessionScanner {
     }
 
     /**
-     * 단일 JSONL 파일 파싱
-     * @param {string} filePath transcript_path 값 (~/... 형식 포함)
+     * Parse a single JSONL file
+     * @param {string} filePath transcript_path value (may include ~/... format)
      * @returns {SessionStats | null}
      */
     parseSessionFile(filePath) {
-        // Windows: ~ → os.homedir() 치환
+        // Windows: replace ~ → os.homedir()
         const resolvedPath = filePath.startsWith('~')
             ? path.join(os.homedir(), filePath.slice(1))
             : filePath;
@@ -120,16 +120,16 @@ class SessionScanner {
             let entry;
             try { entry = JSON.parse(line); } catch { continue; }
 
-            // 타임스탬프 추적
+            // Track timestamp
             if (entry.timestamp) {
                 if (!firstMessageAt) firstMessageAt = entry.timestamp;
                 lastMessageAt = entry.timestamp;
             }
 
-            // 사이드체인(compact 내부) 무시
+            // Ignore sidechain (internal to compact)
             if (entry.isSidechain) continue;
 
-            // 마지막 활동 시간
+            // Last activity time
             if (entry.timestamp) lastActivity = entry.timestamp;
 
             if (entry.type === 'user') {
@@ -139,10 +139,10 @@ class SessionScanner {
             if (entry.type === 'assistant' && entry.message) {
                 assistantMessages++;
 
-                // 모델 추출
+                // Extract model
                 if (entry.message.model) model = entry.message.model;
 
-                // 토큰 usage 추출 (캐시 포함)
+                // Extract token usage (including cache)
                 const usage = entry.message.usage;
                 if (usage) {
                     inputTokens += usage.input_tokens || 0;
@@ -151,7 +151,7 @@ class SessionScanner {
                     outputTokens += usage.output_tokens || 0;
                 }
 
-                // tool_use 블록 수 계산
+                // Count tool_use blocks
                 if (Array.isArray(entry.message.content)) {
                     for (const block of entry.message.content) {
                         if (block.type === 'tool_use') toolUses++;
@@ -160,13 +160,13 @@ class SessionScanner {
             }
         }
 
-        // 비용 계산 (캐시 할인/프리미엄 적용)
+        // Calculate cost (applying cache discount/premium)
         const pricing = (model && MODEL_PRICING[model]) || DEFAULT_PRICING;
         const totalInputTokens = inputTokens + cacheReadTokens + cacheCreationTokens;
         const estimatedCost =
             inputTokens * pricing.input +
-            cacheReadTokens * pricing.input * 0.1 +  // 캐시 읽기 10% 할인
-            cacheCreationTokens * pricing.input * 1.25 +  // 캐시 쓰기 25% 프리미엄
+            cacheReadTokens * pricing.input * 0.1 +  // Cache read 10% discount
+            cacheCreationTokens * pricing.input * 1.25 +  // Cache write 25% premium
             outputTokens * pricing.output;
 
         return {
@@ -184,7 +184,7 @@ class SessionScanner {
     }
 
     /**
-     * 특정 에이전트의 스캔 통계 반환
+     * Return scan statistics for a specific agent
      * @param {string} agentId
      * @returns {SessionStats | null}
      */
@@ -193,7 +193,7 @@ class SessionScanner {
     }
 
     /**
-     * 전체 스캔 결과 반환 (대시보드 API용)
+     * Return all scan results (for dashboard API)
      * @returns {Record<string, SessionStats>}
      */
     getAllStats() {

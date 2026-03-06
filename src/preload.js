@@ -1,6 +1,6 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
-// formatTime 함수 직접 정의
+// Define formatTime function directly
 function formatTime(ms) {
   const totalSeconds = Math.floor(ms / 1000);
   const minutes = Math.floor(totalSeconds / 60);
@@ -8,7 +8,7 @@ function formatTime(ms) {
   return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 }
 
-// P1-5: 리스너 누적 방지 — 등록 전 기존 핸들러 제거
+// P1-5: Prevent listener accumulation — remove existing handlers before registering
 function safeOn(channel, callback) {
   ipcRenderer.removeAllListeners(channel);
   ipcRenderer.on(channel, (event, data) => callback(data));
@@ -24,16 +24,16 @@ contextBridge.exposeInMainWorld('electronAPI', {
   resizeWindow: (size) => ipcRenderer.send('resize-window', size),
   rendererReady: () => ipcRenderer.send('renderer-ready'),
 
-  // 에이전트 이벤트
+  // Agent events
   onAgentAdded: (cb) => safeOn('agent-added', cb),
   onAgentUpdated: (cb) => safeOn('agent-updated', cb),
   onAgentRemoved: (cb) => safeOn('agent-removed', cb),
   onAgentsCleaned: (cb) => safeOn('agents-cleaned', cb),
 
-  // 에러 이벤트 (P0-3: Error Recovery)
+  // Error events (P0-3: Error Recovery)
   onErrorOccurred: (cb) => safeOn('error-occurred', cb),
 
-  // 에이전트 조회
+  // Agent queries
   getAllAgents: () => {
     ipcRenderer.send('get-all-agents');
     return new Promise(resolve => ipcRenderer.once('all-agents-response', (_, d) => resolve(d)));
@@ -47,10 +47,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     return new Promise(resolve => ipcRenderer.once('agent-stats-response', (_, d) => resolve(d)));
   },
 
-  // 터미널 포커스 (에이전트 클릭 시) - agentId로 실제 PID 활용, 성공/실패 응답
+  // Terminal focus (on agent click) - uses actual PID via agentId, returns success/failure
   focusTerminal: (agentId) => ipcRenderer.invoke('focus-terminal', agentId),
 
-  // 에이전트 수동 퇴근 (X 버튼 클릭 시)
+  // Manual agent dismissal (on X button click)
   dismissAgent: (agentId) => ipcRenderer.send('dismiss-agent', agentId),
 
   // Mission Control Dashboard methods

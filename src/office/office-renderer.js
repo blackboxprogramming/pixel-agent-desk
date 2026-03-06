@@ -122,7 +122,7 @@ var officeRenderer = {
       let scaleY = 1.0;
       let floatY = 0;
 
-      // 에이전트별 위상 오프셋 (같은 방향 동시 흔들림 방지)
+      // Per-agent phase offset (prevent simultaneous wobble in the same direction)
       var phaseOffset = (agent.id ? agent.id.charCodeAt(0) : 0) * 0.7;
 
       if (agent.agentState === 'working') {
@@ -265,7 +265,7 @@ var officeRenderer = {
         ctx.shadowColor = fx.color || '#fff';
         ctx.fillText(chars[charIdx], 0, 0);
       } else if (fx.type === 'stateChange') {
-        // 확장되는 원형 링 이펙트
+        // Expanding circular ring effect
         var elapsed = performance.now() - fx.startTime;
         var t = elapsed / fx.duration;
         var radius = 8 + t * 20;

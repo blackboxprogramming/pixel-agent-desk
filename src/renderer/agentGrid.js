@@ -33,7 +33,7 @@ function updateAgent(agent) {
     }
   }
 
-  // 에이전트 타입 변경 감지 (auto-create로 Main 생성 후 SubagentStart로 Sub 전환 시)
+  // Detect agent type change (e.g., Main created via auto-create then switched to Sub via SubagentStart)
   const wasSubagent = card.classList.contains('is-subagent');
   const wasTeammate = card.classList.contains('is-teammate');
   const typeChanged = (!!agent.isSubagent !== wasSubagent) || (!!agent.isTeammate !== wasTeammate);
@@ -50,7 +50,7 @@ function removeAgent(data) {
   const card = document.querySelector(`[data-agent-id="${data.id}"]`);
   if (!card) return;
 
-  // 애니메이션 메모리 정리
+  // Clean up animation memory
   animationManager.stop(data.id);
 
   const state = agentStates.get(data.id);
@@ -67,7 +67,7 @@ function removeAgent(data) {
   agentStates.delete(data.id);
   agentAvatars.delete(data.id);
 
-  // 퇴장 애니메이션 후 DOM 제거
+  // Remove DOM element after exit animation
   card.classList.add('removing');
   setTimeout(() => {
     card.remove();
@@ -80,7 +80,7 @@ function cleanupAgents(data) {
   updateGridLayout();
 }
 
-// --- 빈 상태(에이전트 0개) 대기 아바타 ---
+// --- Idle avatar for empty state (0 agents) ---
 const idleContainer = document.getElementById('container');
 const idleCharacter = document.getElementById('character');
 const idleBubble = document.getElementById('speech-bubble');
@@ -96,7 +96,7 @@ function drawFrameOn(el, frameIndex) {
   if (!el) return;
   const col = frameIndex % SHEET.cols;
   const row = Math.floor(frameIndex / SHEET.cols);
-  // 싱글 캐릭터는 1.5배 확대 (72x96, bg 648x384)
+  // Single character is scaled 1.5x (72x96, bg 648x384)
   const fw = 72;
   const fh = 96;
   el.style.backgroundPosition = `${col * -fw}px ${row * -fh}px`;
@@ -212,7 +212,7 @@ function updateGridLayout() {
 
 }
 
-// 윈도우 크기 조절 (에이전트 추가/제거 시에만 호출, 500ms 쓰로틀)
+// Window resize (called only on agent add/remove, 500ms throttle)
 let _resizeTimer = null;
 function requestDynamicResize() {
   if (!window.electronAPI || !window.electronAPI.resizeWindow) return;

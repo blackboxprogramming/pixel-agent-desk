@@ -1,13 +1,13 @@
 /**
  * HTTP Hook Server
- * Claude CLI가 직접 POST하는 HTTP 훅 서버 (스키마 검증 포함)
+ * HTTP hook server that receives POST requests directly from Claude CLI (with schema validation)
  */
 
 const http = require('http');
 const Ajv = require('ajv');
 
 function startHookServer({ processHookEvent, debugLog, HOOK_SERVER_PORT, errorHandler }) {
-  // P1-3: JSON Schema for hook validation (Task 3A-1: 실제 Claude 훅 필드 기반으로 수정)
+  // P1-3: JSON Schema for hook validation (Task 3A-1: updated based on actual Claude hook fields)
   const hookSchema = {
     type: 'object',
     required: ['hook_event_name'],
@@ -20,7 +20,7 @@ function startHookServer({ processHookEvent, debugLog, HOOK_SERVER_PORT, errorHa
           'Stop', 'TaskCompleted', 'PermissionRequest', 'Notification',
           'SubagentStart', 'SubagentStop', 'TeammateIdle',
           'ConfigChange', 'WorktreeCreate', 'WorktreeRemove', 'PreCompact',
-          'InstructionsLoaded'  // 새 이벤트
+          'InstructionsLoaded'  // new event
         ]
       },
       session_id: { type: 'string' },
@@ -46,7 +46,7 @@ function startHookServer({ processHookEvent, debugLog, HOOK_SERVER_PORT, errorHa
       _pid: { type: 'number' },
       _timestamp: { type: 'number' }
     },
-    additionalProperties: true  // Claude가 새 필드 추가할 수 있으므로 유지
+    additionalProperties: true  // Keep this since Claude may add new fields
   };
 
   const ajv = new Ajv();

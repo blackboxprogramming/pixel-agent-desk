@@ -1,6 +1,6 @@
 /**
  * P0-3: Error Recovery System - Central Error Handler
- * 모든 에러를 캡처, 분류, 로깅하고 UI에 전달
+ * Captures, classifies, logs, and forwards all errors to the UI
  */
 const { app } = require('electron');
 const path = require('path');
@@ -38,7 +38,7 @@ class ErrorHandler {
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
     this.currentLogFile = path.join(this.logPath, `error-${timestamp}.log`);
 
-    // 오래된 로그 파일 정리 (최대 5개, 10MB 제한)
+    // Clean up old log files (max 5 files, 10MB limit)
     try {
       const files = fs.readdirSync(this.logPath)
         .filter(f => f.startsWith('error-') && f.endsWith('.log'))
@@ -49,7 +49,7 @@ class ErrorHandler {
         }))
         .sort((a, b) => b.time - a.time);
 
-      // 5개 초과 시 삭제
+      // Delete if more than 5 files
       if (files.length > 5) {
         files.slice(5).forEach(f => {
           try {
@@ -58,12 +58,12 @@ class ErrorHandler {
         });
       }
 
-      // 현재 파일이 10MB 초과 시 회전
+      // Rotate if current file exceeds 10MB
       if (files.length > 0) {
         const newest = files[0];
         const stats = fs.statSync(newest.path);
         if (stats.size > 10 * 1024 * 1024) {
-          // 새 파일 생성
+          // Create new file
           const newTimestamp = new Date().toISOString().replace(/[:.]/g, '-');
           this.currentLogFile = path.join(this.logPath, `error-${newTimestamp}.log`);
         }
@@ -74,34 +74,34 @@ class ErrorHandler {
   }
 
   /**
-   * P1-2: 에러를 캡처하고 처리합니다 (비동기 로깅)
-   * @param {Error|object} error - 에러 객체
-   * @param {object} context - 추가 컨텍스트
-   * @returns {object} 정규화된 에러 컨텍스트
+   * P1-2: Capture and process an error (async logging)
+   * @param {Error|object} error - Error object
+   * @param {object} context - Additional context
+   * @returns {object} Normalized error context
    */
   async capture(error, context = {}) {
     try {
       const errorContext = this.normalize(error, context);
 
-      // 중복 제거 (같은 에러 코드 + 메시지 조합)
+      // Deduplication (same error code + message combination)
       const dedupKey = `${errorContext.code}:${errorContext.message}`;
       if (this.deduplicationSet.has(dedupKey)) {
-        return errorContext; // 이미 처리된 에러는 건너뜀
+        return errorContext; // Skip already-processed errors
       }
       this.deduplicationSet.add(dedupKey);
 
-      // 5초 후 중복 제거 세트에서 제거
+      // Remove from deduplication set after 5 seconds
       setTimeout(() => {
         this.deduplicationSet.delete(dedupKey);
       }, 5000);
 
-      // P1-2: 비동기 로그 기록
+      // P1-2: Async log writing
       await this.logToFile(errorContext);
 
-      // Renderer로 전송
+      // Send to renderer
       this.sendToRenderer(errorContext);
 
-      // 카운터 증가
+      // Increment counter
       this.errorCount++;
 
       return errorContext;
@@ -112,7 +112,7 @@ class ErrorHandler {
   }
 
   /**
-   * 에러를 표준 형식으로 정규화합니다.
+   * Normalize an error into a standard format.
    */
   normalize(error, context) {
     const errorCode = context.code || 'E000';
@@ -124,7 +124,7 @@ class ErrorHandler {
       code: errorCode,
       name: error?.name || context.name || 'UnknownError',
       message: error?.message || context.message || messageData.short || 'Unknown error',
-      userMessage: messageData.short || messageData.userMessage || '작업을 완료할 수 없어요',
+      userMessage: messageData.short || messageData.userMessage || 'Could not complete the operation',
       explanation: messageData.detail || messageData.explanation || '',
       severity: context.severity || ErrorSeverity.ERROR,
       category: context.category || ErrorCategory.UNKNOWN,
@@ -135,14 +135,14 @@ class ErrorHandler {
   }
 
   /**
-   * 고유 ID 생성
+   * Generate unique ID
    */
   generateId() {
     return `err_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }
 
   /**
-   * P1-2: 로그 파일에 기록 (비동기)
+   * P1-2: Write to log file (async)
    */
   async logToFile(errorContext) {
     if (!this.currentLogFile) return;
@@ -160,7 +160,7 @@ class ErrorHandler {
 
       const logLine = JSON.stringify(logEntry) + '\n';
 
-      // P1-2: 비동기 파일 쓰기 (fs.promises 사용)
+      // P1-2: Async file write (using fs.promises)
       await fs.promises.appendFile(this.currentLogFile, logLine, 'utf8');
     } catch (e) {
       console.error('[ErrorHandler] Failed to write log:', e);
@@ -168,7 +168,7 @@ class ErrorHandler {
   }
 
   /**
-   * Renderer 프로세스로 에러 전송
+   * Send error to renderer process
    */
   sendToRenderer(errorContext) {
     if (!this.mainWindow || this.mainWindow.isDestroyed()) {
@@ -183,18 +183,18 @@ class ErrorHandler {
   }
 
   /**
-   * 에러 카운트 초기화
+   * Reset error count
    */
   resetErrorCount() {
     this.errorCount = 0;
   }
 
   /**
-   * 최근 로그 파일 내용 읽기
+   * Read recent log file contents
    */
   readRecentLogs(maxLines = 100) {
     if (!this.currentLogFile || !fs.existsSync(this.currentLogFile)) {
-      return '로그 파일이 없어요';
+      return 'No log file found';
     }
 
     try {
@@ -211,19 +211,19 @@ class ErrorHandler {
         }
       }).join('\n');
     } catch (e) {
-      return `로그 읽기 실패: ${e.message}`;
+      return `Failed to read logs: ${e.message}`;
     }
   }
 
   /**
-   * 현재 로그 파일 경로 반환
+   * Return current log file path
    */
   getLogFilePath() {
     return this.currentLogFile;
   }
 }
 
-// 싱글톤 인스턴스
+// Singleton instance
 const errorHandler = new ErrorHandler();
 
 module.exports = errorHandler;

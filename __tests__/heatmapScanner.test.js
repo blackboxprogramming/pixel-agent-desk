@@ -1,6 +1,6 @@
 /**
  * HeatmapScanner Tests
- * JSONL 스캔, 일별 집계, 증분 스캔, 영속화 테스트
+ * JSONL scanning, daily aggregation, incremental scanning, persistence tests
  */
 
 const fs = require('fs');
@@ -8,12 +8,12 @@ const os = require('os');
 const path = require('path');
 const HeatmapScanner = require('../src/heatmapScanner');
 
-// 테스트용 임시 디렉토리
+// Temporary directory for tests
 let tmpDir;
 let projectsDir;
 let persistDir;
 
-// fs.existsSync, readFileSync 등 원본 보존
+// Preserve originals for fs.existsSync, readFileSync, etc.
 const originalHomedir = os.homedir;
 
 beforeEach(() => {
@@ -22,18 +22,18 @@ beforeEach(() => {
   persistDir = path.join(tmpDir, '.pixel-agent-desk');
   fs.mkdirSync(projectsDir, { recursive: true });
 
-  // homedir를 tmpDir로 모킹
+  // Mock homedir to tmpDir
   os.homedir = () => tmpDir;
 });
 
 afterEach(() => {
   os.homedir = originalHomedir;
-  // 임시 디렉토리 정리
+  // Clean up temporary directory
   fs.rmSync(tmpDir, { recursive: true, force: true });
 });
 
 /**
- * 테스트용 JSONL 라인 생성 헬퍼
+ * Helper to generate JSONL lines for testing
  */
 function makeUserLine(timestamp, sessionId = 'sess-1') {
   return JSON.stringify({
@@ -118,7 +118,7 @@ describe('HeatmapScanner', () => {
     });
 
     test('handles non-existent projects directory', async () => {
-      // 임시로 .claude 디렉토리 삭제
+      // Temporarily delete .claude directory
       fs.rmSync(path.join(tmpDir, '.claude'), { recursive: true, force: true });
 
       const scanner = new HeatmapScanner();
@@ -183,7 +183,7 @@ describe('HeatmapScanner', () => {
 
       expect(scanner.getDailyStats().days['2026-03-05'].toolUses).toBe(1);
 
-      // 파일에 추가 기록
+      // Append additional data to the file
       const lines2 = [
         makeAssistantLine('2026-03-05T12:00:00Z', 'sess-1', { toolUseCount: 3 }),
       ].join('\n') + '\n';
@@ -191,7 +191,7 @@ describe('HeatmapScanner', () => {
 
       await scanner.scanAll();
 
-      // 기존 + 새로운 도구 사용이 합산되어야 함
+      // Existing + new tool uses should be summed
       expect(scanner.getDailyStats().days['2026-03-05'].toolUses).toBe(4);
     });
 
@@ -206,7 +206,7 @@ describe('HeatmapScanner', () => {
       await scanner.scanAll();
       const firstScan = scanner.lastScan;
 
-      // 같은 파일 다시 스캔 → 엔트리 수 변경 없어야 함
+      // Re-scanning the same file should not change entry count
       await scanner.scanAll();
       expect(scanner.getDailyStats().days['2026-03-05'].userMessages).toBe(1);
     });
@@ -242,11 +242,11 @@ describe('HeatmapScanner', () => {
       const scanner1 = new HeatmapScanner();
       await scanner1.scanAll();
 
-      // 영속화 확인
+      // Verify persistence
       const persistFile = path.join(tmpDir, '.pixel-agent-desk', 'heatmap.json');
       expect(fs.existsSync(persistFile)).toBe(true);
 
-      // 새 인스턴스로 복원
+      // Restore with a new instance
       const scanner2 = new HeatmapScanner();
       const stats = scanner2.getDailyStats();
       expect(stats.days['2026-03-05']).toBeDefined();
@@ -266,7 +266,7 @@ describe('HeatmapScanner', () => {
       const persistFile = path.join(tmpDir, '.pixel-agent-desk', 'heatmap.json');
       const data = JSON.parse(fs.readFileSync(persistFile, 'utf-8'));
 
-      // _sessions, _projects Set은 직렬화에서 제외
+      // _sessions and _projects Sets should be excluded from serialization
       expect(data.days['2026-03-05']._sessions).toBeUndefined();
       expect(data.days['2026-03-05']._projects).toBeUndefined();
     });

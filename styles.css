@@ -20,17 +20,17 @@ body {
   flex-direction: column;
   justify-content: flex-end;
   align-items: center;
-  /* 말풍선 크기 증가 시 캐릭터가 밑으로 밀리는 현상 방지. 아래쪽으로 정렬 */
+  /* Prevent character from being pushed down when bubble grows. Align to bottom */
   overflow: hidden !important;
   -webkit-app-region: no-drag;
   pointer-events: none;
-  /* 배경은 클릭 통과 */
+  /* Click-through background */
   min-width: 220px;
   min-height: 220px;
   width: fit-content;
   height: auto;
   padding-bottom: 2px;
-  /* 바닥에 딱 붙지 않도록 최소 여백 (DWM 흰줄 방지를 위해 최소화) */
+  /* Minimum margin to prevent sticking to bottom (minimized to avoid DWM white line) */
 }
 
 html {
@@ -56,7 +56,7 @@ html {
 
 .agent-grid.has-multiple {
   display: grid;
-  /* 가로 10명까지 지원하되, 현재 에이전트 수에 맞춰 폭이 가변적으로 변하도록 설정 */
+  /* Supports up to 10 agents horizontally, width adjusts based on agent count */
   grid-template-columns: repeat(auto-fill, 90px);
   grid-auto-rows: auto;
   gap: 10px 10px;
@@ -78,10 +78,10 @@ html {
   position: relative;
   width: 100%;
   pointer-events: auto;
-  /* 아바타 영역은 클릭 감지 */
+  /* Avatar area detects clicks */
 }
 
-/* 캐릭터 스프라이트 (싱글 에이전트: 1.5배 확대 히어로 모드) */
+/* Character sprite (single agent: 1.5x enlarged hero mode) */
 .character {
   width: 72px;
   height: 96px;
@@ -89,7 +89,7 @@ html {
   overflow: hidden;
   background-image: url('./public/characters/avatar_0.webp');
   background-size: 648px 384px;
-  /* 1.5배: 432*1.5=648, 256*1.5=384 */
+  /* 1.5x: 432*1.5=648, 256*1.5=384 */
   background-repeat: no-repeat;
   image-rendering: pixelated;
   image-rendering: crisp-edges;
@@ -97,10 +97,10 @@ html {
   transform: translateZ(0);
   backface-visibility: hidden;
   -webkit-app-region: drag;
-  /* 캐릭터를 잡아 끌어서 이동 가능하게 수정 */
+  /* Allow dragging the character to move the window */
 }
 
-/* 말풍선 (싱글) */
+/* Speech bubble (single) */
 .speech-bubble {
   position: absolute;
   bottom: calc(50% + 56px);
@@ -150,29 +150,29 @@ html {
 }
 
 /* ════════════════════════════════════════
-   Multi-Agent Mode — 미니 카드
+   Multi-Agent Mode — Mini Cards
 ════════════════════════════════════════ */
 
-/* 카드 컨테이너 */
+/* Card container */
 .agent-card {
   width: 80px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: flex-end;
-  /* 말풍선이 2줄 이상이 되면 위로 늘어나고, 캐릭터 바닥은 고정됨 */
+  /* Bubble grows upward when exceeding 2 lines, character stays at bottom */
   position: relative;
   pointer-events: auto;
-  /* 카드 영역 클릭 감지 */
+  /* Card area click detection */
   width: 90px;
   padding-bottom: 5px;
   border: 1px solid transparent;
   border-radius: 8px;
   min-height: 130px;
-  /* 말풍선 줄바꿈 여유 공간 확보 */
+  /* Extra space for bubble line wrapping */
 }
 
-/* 키보드 포커스 스타일 */
+/* Keyboard focus styles */
 .agent-card:focus-visible,
 .agent-character:focus-visible,
 .web-dashboard-btn:focus-visible {
@@ -186,7 +186,7 @@ html {
 }
 
 /* ════════════════════════════════════════
-   터미널 포커스 버튼
+   Terminal Focus Button
    ════════════════════════════════════════ */
 .focus-terminal-btn {
   position: absolute;
@@ -212,7 +212,7 @@ html {
   overflow: hidden;
 }
 
-/* 터미널 타이틀바 */
+/* Terminal title bar */
 .focus-terminal-btn::before {
   content: '';
   position: absolute;
@@ -224,7 +224,7 @@ html {
   border-radius: 0;
 }
 
-/* >_ 커서 */
+/* >_ cursor */
 .focus-terminal-btn::after {
   content: '>_';
   position: absolute;
@@ -295,26 +295,26 @@ html {
   pointer-events: auto;
 }
 
-/* 타입별 스타일 - 너무 튀지 않게 조화로운 톤다운 색상으로 변경 */
+/* Per-type styles - harmonious toned-down colors that don't stand out too much */
 .type-tag.type-main {
   background: #c85a68;
-  /* 진한 장미색 (Main) - WCAG AA 준수를 위해 진하게 */
+  /* Deep rose (Main) - darkened for WCAG AA compliance */
   border: 1px solid #a64855;
 }
 
 .type-tag.type-sub {
   background: #996fb8;
-  /* 부드러운 라벤더 퍼플 (Sub) */
+  /* Soft lavender purple (Sub) */
   border: 1px solid #7c5496;
 }
 
 .type-tag.type-team {
   background: #6098d6;
-  /* 맑은 스카이 블루 (Team) */
+  /* Clear sky blue (Team) */
   border: 1px solid #4a7cb0;
 }
 
-/* 타입별 카드 하이라이트 (제거 - 선 생김 방지) */
+/* Per-type card highlight (removed - prevents border artifacts) */
 .agent-card.type-main {
   border: none;
 }
@@ -327,7 +327,7 @@ html {
   border: none;
 }
 
-/* 프로젝트가 바뀌는 지점에 마진 추가 (물리적 그룹 분리) */
+/* Add margin at project boundaries (physical group separation) */
 .agent-card.group-start {
   margin-left: 20px;
 }
@@ -348,14 +348,14 @@ html {
   transform: scale(0.94);
 }
 
-/* 상태 말풍선 (컬러 테두리) */
+/* Status speech bubble (colored border) */
 .agent-bubble {
   font-family: var(--font-ui);
   font-size: 11px;
   font-weight: 700;
   background: rgba(255, 255, 255, 0.97);
   border: 2px solid #94a3b8;
-  /* 기본: slate (Waiting) — 통합 팔레트 */
+  /* Default: slate (Waiting) — unified palette */
   border-radius: 6px;
   padding: 3px 8px;
   text-align: center;
@@ -369,14 +369,14 @@ html {
   text-overflow: ellipsis;
   position: relative;
   -webkit-app-region: drag;
-  /* 이제 말풍선을 잡고 창을 옮길 수 있습니다 */
+  /* Speech bubble can now be grabbed to move the window */
   pointer-events: auto;
-  /* 드래그 및 클릭 감지 필수 */
+  /* Required for drag and click detection */
   transition: border-color 0.3s ease, box-shadow 0.3s ease;
-  /* 상태 전환 시 부드러운 색상 변화 */
+  /* Smooth color transition on state change */
 }
 
-/* 타이머 표시용 요소 — visibility로 토글하여 높이 고정 */
+/* Timer display element — toggle via visibility to keep height fixed */
 .agent-timer {
   font-family: var(--font-body);
   font-size: 11px;
@@ -396,7 +396,7 @@ html {
   min-height: 14px;
 }
 
-/* ═══ 통합 상태 색상 (3개 뷰 공통) ═══
+/* === Unified status colors (shared across 3 views) ===
    working:  #f97316  (orange)
    thinking: #8b5cf6  (violet)
    waiting:  #94a3b8  (slate)
@@ -406,7 +406,7 @@ html {
    offline:  #475569  (slate-600)
 */
 
-/* 상태별 색상 */
+/* Per-state colors */
 .agent-bubble.is-working,
 .agent-card.state-working .agent-bubble {
   border-color: #f97316;
@@ -435,7 +435,7 @@ html {
   opacity: 0.8;
 }
 
-/* 말풍선 꼬리 (6px 반폭, 7px 높이 — 오피스 뷰와 통일) */
+/* Speech bubble tail (6px half-width, 7px height — unified with office view) */
 .agent-bubble::after {
   content: '';
   position: absolute;
@@ -470,7 +470,7 @@ html {
 }
 
 
-/* 캐릭터 (풀 사이즈) */
+/* Character (full size) */
 .agent-character {
   width: 48px;
   height: 64px;
@@ -482,18 +482,18 @@ html {
   image-rendering: pixelated;
   will-change: background-position;
   transform: translateZ(0);
-  /* GPU 레이어 승격 — 서브픽셀 블리드 방지 */
+  /* GPU layer promotion — prevent sub-pixel bleed */
   backface-visibility: hidden;
   -webkit-app-region: drag;
-  /* 캐릭터 영역 드래그 허용 */
+  /* Allow dragging in character area */
 }
 
-/* 오프라인 캐릭터 딤 처리 */
+/* Offline character dimming */
 .is-offline .agent-character {
   filter: grayscale(100%) opacity(0.5);
 }
 
-/* 이름 뱃지 (캐릭터 아래쪽) */
+/* Name badge (below character) */
 .agent-name {
   font-family: var(--font-ui);
   font-size: 11px;
@@ -505,7 +505,7 @@ html {
   border-radius: 8px;
   padding: 3px 9px;
   margin-top: -6px;
-  /* 캐릭터 라인에 살짝 걸치게 */
+  /* Slightly overlap with character line */
   max-width: 80px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -513,11 +513,11 @@ html {
   text-align: center;
   z-index: 10;
   pointer-events: none;
-  /* 클릭 타겟에서 제외하여 부모(character)가 클릭을 받게 유도 */
+  /* Exclude from click target so parent (character) receives clicks */
 }
 
 /* ════════════════════════════════════════
-   상태별 컬러 시스템
+   Per-State Color System
 ════════════════════════════════════════ */
 
 /* Idle (gray) */
@@ -539,7 +539,7 @@ html {
   border-top-color: #8b5cf6;
 }
 
-/* Thinking dots (생각 중 ... 깜빡임) */
+/* Thinking dots (blinking ... animation) */
 .agent-card[data-state="thinking"] .agent-bubble .thinking-dots span {
   animation: dot-blink 1.4s infinite;
   font-size: 14px;
@@ -627,24 +627,24 @@ html {
 }
 
 /* ════════════════════════════════════════
-   레이아웃 표시/숨김
+   Layout Show/Hide
 ════════════════════════════════════════ */
 
-/* 싱글 컨테이너: 멀티 모드에서 숨김 */
+/* Single container: hidden in multi mode */
 .agent-grid.has-multiple #container {
   display: none;
 }
 
-/* 에이전트 카드: 싱글 모드에서 숨김 */
+/* Agent cards: hidden in single mode */
 .agent-grid:not(.has-multiple) .agent-card {
   display: none !important;
 }
 
 /* ════════════════════════════════════════
-   서브에이전트 스타일
+   Subagent Styles
 ════════════════════════════════════════ */
 
-/* 서브에이전트 카드: 캐릭터 80% 크기, 보라색 계열, 메인 에이전트와 붙어있게 보이도록 음수 마진 추가 */
+/* Subagent card: character at 80% size, purple tint, negative margin to visually attach to main agent */
 .agent-card.is-subagent {
   opacity: 0.9;
 }
@@ -674,7 +674,7 @@ html {
   border-top-color: #9c27b0;
 }
 
-/* Sub 배지 */
+/* Sub badge */
 .agent-sub-badge {
   position: absolute;
   top: 18px;
@@ -694,22 +694,22 @@ html {
 /* ════════════════════════════════════════
    Agent Party Layout (Main + Sub/Team row layout)
 ════════════════════════════════════════ */
-/* 파티(메인+서브/팀) 그룹단위 래퍼 (배경용 격자 박스) */
+/* Party (main+sub/team) group wrapper (background grid box) */
 .agent-party-bg {
   background-color: rgba(153, 111, 184, 0.08);
   border: 1px solid rgba(153, 111, 184, 0.2);
   border-bottom: none;
-  /* 하단 선 생김 방지 */
+  /* Prevent bottom border artifact */
   border-radius: 12px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
   z-index: -1;
   margin: -5px -2px -2px -2px;
-  /* 카드를 약간 감싸도록 마진 조정 */
+  /* Adjust margin to slightly wrap around cards */
   pointer-events: none;
 }
 
 /* ════════════════════════════════════════
-   Avatar Toolbar (Dashboard Button 등)
+   Avatar Toolbar (Dashboard Button, etc.)
 ═════════════════════════════════════════ */
 .avatar-toolbar {
   display: flex;
@@ -801,7 +801,7 @@ html {
    P0-3: Error Recovery UI Styles
 ═════════════════════════════════════════ */
 
-/* 에러 토스트 컨테이너 */
+/* Error toast container */
 .error-toast {
   position: fixed;
   top: 10px;
@@ -829,7 +829,7 @@ html {
   }
 }
 
-/* 심각도별 색상 */
+/* Per-severity colors */
 .error-fatal {
   border-left: 4px solid #d32f2f;
 }
@@ -846,7 +846,7 @@ html {
   border-left: 4px solid #2196f3;
 }
 
-/* 에러 헤더 */
+/* Error header */
 .error-header {
   display: flex;
   align-items: center;
@@ -893,7 +893,7 @@ html {
   transform: scale(0.95);
 }
 
-/* 에러 본문 */
+/* Error body */
 .error-body {
   padding: 12px;
 }
@@ -911,7 +911,7 @@ html {
   line-height: 1.4;
 }
 
-/* 에러 액션 버튼 */
+/* Error action buttons */
 .error-actions {
   display: flex;
   gap: 6px;
@@ -952,7 +952,7 @@ html {
   transform: none;
 }
 
-/* 키보드 포커스 스타일 */
+/* Keyboard focus styles */
 .error-toast:focus-visible,
 .error-action-btn:focus-visible,
 .error-close:focus-visible {
@@ -960,7 +960,7 @@ html {
   outline-offset: 2px;
 }
 
-/* 다크 모드 지원 (선택 사항) */
+/* Dark mode support (optional) */
 @media (prefers-color-scheme: dark) {
   .error-toast {
     background: rgba(30, 30, 30, 0.98);

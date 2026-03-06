@@ -1,12 +1,12 @@
 /**
- * Animation Manager — rAF 루프, drawFrame, playAnimation
+ * Animation Manager — rAF loop, drawFrame, playAnimation
  */
 
 const animationManager = {
   animations: new Map(), // agentId -> { agentId, element, animName, sequence, frameIdx, lastTime, rafId }
 
   start(agentId, element, animName) {
-    // 이미 동일 애니메이션 실행 중이면 재시작하지 않음 (rAF 중단 → 깜빡임 방지)
+    // Skip if the same animation is already running (avoid rAF interruption -> flickering)
     const existing = this.animations.get(agentId);
     if (existing && existing.animName === animName) return;
 

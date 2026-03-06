@@ -1,6 +1,6 @@
 /**
  * Window Manager
- * 메인윈도우, 대시보드윈도우, keep-alive, 리사이즈, 대시보드 서버 관리
+ * Main window, dashboard window, keep-alive, resize, dashboard server management
  */
 
 const { BrowserWindow, screen } = require('electron');
@@ -58,13 +58,13 @@ function createWindowManager({ agentManager, sessionScanner, heatmapScanner, deb
     mainWindow.once('ready-to-show', () => {
       mainWindow.show();
       mainWindow.setAlwaysOnTop(true, 'screen-saver');
-      // DevTools: --dev 인자 또는 npm run dev 일 때만
+      // DevTools: only when --dev argument or npm run dev
       if (process.argv.includes('--dev')) {
         mainWindow.webContents.openDevTools({ mode: 'detach' });
       }
     });
 
-    // 메인 윈도우(아바타) 닫힘 → 대시보드도 닫고 앱 종료
+    // Main window (avatar) closed -> close dashboard and quit app
     mainWindow.on('closed', () => {
       mainWindow = null;
       closeDashboardWindow();
@@ -106,7 +106,7 @@ function createWindowManager({ agentManager, sessionScanner, heatmapScanner, deb
     try {
       const { width, height } = screen.getPrimaryDisplay().workAreaSize;
 
-      // 맵(864) + 사이드바(280) + 패딩(56) = 1200, 높이: 화면 90% 활용
+      // Map(864) + sidebar(280) + padding(56) = 1200, height: 90% of screen
       const minDashW = 1200;
       const minDashH = 1000;
       const dashW = Math.min(Math.max(minDashW, Math.floor(width * 0.7)), width - 40);
@@ -117,7 +117,7 @@ function createWindowManager({ agentManager, sessionScanner, heatmapScanner, deb
         height: dashH,
         x: Math.floor((width - dashW) / 2),
         y: Math.floor((height - dashH) / 2),
-        title: '픽셀 에이전트 데스크',
+        title: 'Pixel Agent Desk',
         backgroundColor: '#ffffff',
         webPreferences: {
           nodeIntegration: false,
@@ -127,7 +127,7 @@ function createWindowManager({ agentManager, sessionScanner, heatmapScanner, deb
         }
       });
 
-      // HTTP 서버를 통해 로드 (file:// 대신) — office 모듈 등 정적 파일 서빙 필요
+      // Load via HTTP server (instead of file://) — needed for serving office module static files
       dashboardWindow.loadURL('http://localhost:3000/');
 
       dashboardWindow.webContents.on('did-finish-load', () => {
@@ -176,11 +176,11 @@ function createWindowManager({ agentManager, sessionScanner, heatmapScanner, deb
 
   function startDashboardServer() {
     if (dashboardServer) {
-      debugLog('[Dashboard] 서버가 이미 실행 중입니다.');
+      debugLog('[Dashboard] Server is already running.');
       return;
     }
 
-    debugLog('[Dashboard] 서버 시작 중...');
+    debugLog('[Dashboard] Starting server...');
 
     try {
       const serverModule = require('../dashboard-server.js');
@@ -197,21 +197,21 @@ function createWindowManager({ agentManager, sessionScanner, heatmapScanner, deb
 
       dashboardServer = serverModule.startServer();
 
-      debugLog('[Dashboard] 서버 시작 완료 (port 3000)');
+      debugLog('[Dashboard] Server started (port 3000)');
     } catch (error) {
-      debugLog(`[Dashboard] ❌ 시작 실패: ${error.message}`);
+      debugLog(`[Dashboard] Failed to start: ${error.message}`);
     }
   }
 
   function stopDashboardServer() {
     if (dashboardServer) {
-      debugLog('[Dashboard] 서버 정리 중...');
+      debugLog('[Dashboard] Shutting down server...');
       try {
         dashboardServer.close(() => {
-          debugLog('[Dashboard] 서버 정리 완료');
+          debugLog('[Dashboard] Server shutdown complete');
         });
       } catch (error) {
-        debugLog(`[Dashboard] 정리 중 오류: ${error.message}`);
+        debugLog(`[Dashboard] Error during shutdown: ${error.message}`);
       }
       dashboardServer = null;
     }

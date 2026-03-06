@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 
 <head>
   <meta charset="UTF-8">
@@ -10,12 +10,12 @@
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Press+Start+2P&display=swap" rel="stylesheet">
   <style>
     :root {
-      /* ── 폰트 시스템 ── */
+      /* ── Font System ── */
       --font-display: 'Press Start 2P', monospace;
       --font-body: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
       --font-ui: 'Pretendard Variable', Pretendard, -apple-system, sans-serif;
 
-      /* ── 배경 계층 (깊이감) ── */
+      /* ── Background Layers (depth) ── */
       --color-bg-deep: #080c16;
       --color-bg: #0d1117;
       --color-card: #161b22;
@@ -23,19 +23,19 @@
       --color-border: #30363d;
       --color-border-active: #58a6ff;
 
-      /* ── 텍스트 ── */
+      /* ── Text ── */
       --color-text: #e6edf3;
       --color-text-muted: #7d8590;
       --color-text-accent: #58a6ff;
 
-      /* ── 시맨틱 ── */
+      /* ── Semantic ── */
       --color-primary: #58a6ff;
       --color-success: #3fb950;
       --color-warning: #d29922;
       --color-error: #f85149;
       --color-info: #a371f7;
 
-      /* ── 통합 상태 색상 (styles.css, office-config.js와 동기화) ── */
+      /* ── Unified Status Colors (synced with styles.css, office-config.js) ── */
       --color-state-working: #f97316;
       --color-state-thinking: #8b5cf6;
       --color-state-waiting: #7d8590;
@@ -44,14 +44,14 @@
       --color-state-error: #f85149;
       --color-state-offline: #30363d;
 
-      /* ── 글로우 시스템 ── */
+      /* ── Glow System ── */
       --glow-working: 0 0 20px rgba(249, 115, 22, 0.25), 0 0 4px rgba(249, 115, 22, 0.4);
       --glow-thinking: 0 0 20px rgba(139, 92, 246, 0.25), 0 0 4px rgba(139, 92, 246, 0.4);
       --glow-done: 0 0 20px rgba(63, 185, 80, 0.2), 0 0 4px rgba(63, 185, 80, 0.3);
       --glow-error: 0 0 20px rgba(248, 81, 73, 0.25), 0 0 4px rgba(248, 81, 73, 0.4);
       --glow-primary: 0 0 20px rgba(88, 166, 255, 0.2), 0 0 4px rgba(88, 166, 255, 0.3);
 
-      /* ── 그림자 ── */
+      /* ── Shadows ── */
       --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
       --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.5);
       --shadow-lg: 0 10px 20px rgba(0, 0, 0, 0.6);
@@ -151,7 +151,7 @@
       background: var(--color-error);
     }
 
-    /* 연결 끊김 배너 */
+    /* Disconnection Banner */
     .disconnect-banner {
       background: var(--color-error);
       color: #fff;
@@ -218,7 +218,7 @@
       display: flex;
       flex-direction: column;
       min-height: 0;
-      /* flex 컨테이너 오버플로 방지 */
+      /* prevent flex container overflow */
     }
 
     .live-feed-title {
@@ -237,7 +237,7 @@
       overflow-x: hidden;
       padding: 0 10px;
       min-height: 0;
-      /* flex 자식 오버플로 방지 */
+      /* prevent flex child overflow */
     }
 
     .live-feed-list::-webkit-scrollbar {
@@ -421,7 +421,7 @@
       transform: translateY(-2px);
     }
 
-    /* ── A3: 상태별 글로우 효과 ── */
+    /* ── A3: Per-status glow effects ── */
     .agent-card.working {
       box-shadow: var(--glow-working);
       border-color: rgba(249, 115, 22, 0.4);
@@ -507,7 +507,7 @@
       color: var(--color-state-error);
     }
 
-    /* 활성 맥동 dot */
+    /* Active pulsing dot */
     .active-dot {
       display: inline-block;
       width: 8px;
@@ -523,7 +523,7 @@
       50% { opacity: 0.4; }
     }
 
-    /* 현재 활동 표시 */
+    /* Current activity indicator */
     .current-activity {
       font-family: var(--font-body);
       font-size: 0.8rem;
@@ -982,50 +982,50 @@
       <div class="header-left">
         <div>
           <h1 class="header-title">🤖 Pixel Agent Desk</h1>
-          <p class="header-subtitle">AI 에이전트 실시간 모니터링 대시보드</p>
+          <p class="header-subtitle">AI Agent Real-time Monitoring Dashboard</p>
         </div>
       </div>
       <div class="header-right">
         <div class="connection-status" role="status" aria-live="polite">
           <span class="status-indicator" id="statusIndicator" aria-hidden="true"></span>
-          <span id="connectionStatus">연결 중...</span>
+          <span id="connectionStatus">Connecting...</span>
         </div>
       </div>
     </header>
 
-    <!-- 연결 끊김 배너 -->
+    <!-- Disconnection Banner -->
     <div id="disconnectBanner" class="disconnect-banner" style="display:none;">
-      연결 끊김 — 서버에 재연결 시도 중...
+      Disconnected — Attempting to reconnect to server...
     </div>
 
     <!-- Sidebar -->
     <aside class="sidebar">
       <div class="nav-section">
-        <div class="nav-title">메뉴</div>
+        <div class="nav-title">Menu</div>
         <div class="nav-item active" data-view="office">
           <span>🏢</span>
-          <span>오피스</span>
+          <span>Office</span>
         </div>
         <div class="nav-item" data-view="overview">
           <span>📊</span>
-          <span>개요</span>
+          <span>Overview</span>
         </div>
         <div class="nav-item" data-view="agents">
           <span>👥</span>
-          <span>에이전트</span>
+          <span>Agents</span>
         </div>
         <div class="nav-item" data-view="tokens">
           <span>💰</span>
-          <span>토큰</span>
+          <span>Tokens</span>
         </div>
         <div class="nav-item" data-view="heatmap">
           <span>📅</span>
-          <span>활동 기록</span>
+          <span>Activity Log</span>
         </div>
       </div>
 
       <div class="live-feed">
-        <div class="live-feed-title">실시간 이벤트</div>
+        <div class="live-feed-title">Live Events</div>
         <div class="live-feed-list" id="liveFeedList">
           <!-- Live feed items will be inserted here -->
         </div>
@@ -1041,7 +1041,7 @@
     <main class="main-content" id="mainContent" style="display:none">
       <div class="loading">
         <div class="loading-spinner"></div>
-        <span>데이터를 불러오는 중...</span>
+        <span>Loading data...</span>
       </div>
     </main>
   </div>
@@ -1063,10 +1063,10 @@
   <script>
     /**
      * Pixel Agent Desk Dashboard
-     * SSE 기반 실시간 업데이트
+     * SSE-based real-time updates
      */
 
-    // 상태 관리
+    // State management
     const state = {
       agents: new Map(), // sessionId -> agent data
       stats: {
@@ -1080,7 +1080,7 @@
       currentView: localStorage.getItem('dashboard-tab') || 'office'
     };
 
-    // DOM 요소
+    // DOM elements
     const elements = {
       mainContent: document.getElementById('mainContent'),
       liveFeedList: document.getElementById('liveFeedList'),
@@ -1089,13 +1089,13 @@
     };
 
     /**
-     * SSE 연결 시작 (지수 백오프 재연결)
+     * Start SSE connection (exponential backoff reconnection)
      */
     let _sseReconnectDelay = 1000;
     let _sseEventSource = null;
 
     function connectSSE() {
-      // 기존 연결 정리
+      // Clean up existing connection
       if (_sseEventSource) {
         _sseEventSource.close();
         _sseEventSource = null;
@@ -1105,18 +1105,18 @@
       _sseEventSource = eventSource;
 
       eventSource.onopen = () => {
-        _sseReconnectDelay = 1000; // 재연결 성공 시 딜레이 초기화
+        _sseReconnectDelay = 1000; // Reset delay on successful reconnection
         state.connected = true;
         updateConnectionStatus(true);
-        addLiveFeed('시스템', '대시보드에 연결되었습니다');
+        addLiveFeed('System', 'Connected to dashboard');
       };
 
       eventSource.onerror = () => {
         state.connected = false;
         updateConnectionStatus(false);
-        addLiveFeed('시스템', '연결이 끊어졌습니다. 재연결 중...');
+        addLiveFeed('System', 'Connection lost. Reconnecting...');
 
-        // EventSource 닫고 수동 재연결 (지수 백오프)
+        // Close EventSource and manually reconnect (exponential backoff)
         eventSource.close();
         _sseEventSource = null;
         const delay = _sseReconnectDelay;
@@ -1124,9 +1124,9 @@
         setTimeout(connectSSE, delay);
       };
 
-      // 이벤트 리스너
+      // Event listeners
       eventSource.addEventListener('connected', (event) => {
-        // 초기 데이터 로드
+        // Load initial data
         fetchInitialData();
       });
 
@@ -1135,7 +1135,7 @@
         const data = payload.data;
         updateAgent(data);
         officeOnAgentCreated(data);
-        addLiveFeed('생성', `${data.name || 'Agent'} 에이전트가 생성되었습니다`);
+        addLiveFeed('Created', `Agent ${data.name || 'Agent'} has been created`);
       });
 
       eventSource.addEventListener('agent.updated', (event) => {
@@ -1150,12 +1150,12 @@
         const data = payload.data;
         removeAgent(data.id);
         officeOnAgentRemoved(data);
-        addLiveFeed('제거', `에이전트가 제거되었습니다 (${data.id?.slice(0, 8)}...)`);
+        addLiveFeed('Removed', `Agent has been removed (${data.id?.slice(0, 8)}...)`);
       });
     }
 
     /**
-     * 초기 데이터 로드
+     * Load initial data
      */
     async function fetchInitialData() {
       try {
@@ -1169,14 +1169,14 @@
         updateStats();
         render();
       } catch (error) {
-        console.error('[Dashboard] 초기 데이터 로드 실패:', error);
+        console.error('[Dashboard] Failed to load initial data:', error);
         elements.mainContent.innerHTML = `
           <div class="empty-state">
             <div class="empty-state-icon">⚠️</div>
-            <div class="empty-state-title">연결 실패</div>
-            <div class="empty-state-text">에이전트 데이터를 불러올 수 없습니다.</div>
+            <div class="empty-state-title">Connection Failed</div>
+            <div class="empty-state-text">Unable to load agent data.</div>
             <div class="empty-state-text" style="font-size: 0.875rem; margin-top: 8px;">
-              SSE 연결이 복구되면 자동으로 데이터가 갱신됩니다
+              Data will be refreshed automatically once the SSE connection is restored
             </div>
           </div>
         `;
@@ -1184,13 +1184,13 @@
     }
 
     /**
-     * 에이전트 업데이트
+     * Update agent
      */
     function updateAgent(agent) {
       state.agents.set(agent.id, agent);
       updateStats();
 
-      // in-place DOM 업데이트: 기존 카드가 있으면 교체, 없으면 전체 렌더
+      // in-place DOM update: replace existing card if found, otherwise full render
       const existingCard = document.querySelector(`[data-card-id="${agent.id}"]`);
       if (existingCard && (state.currentView === 'overview' || state.currentView === 'agents')) {
         const temp = document.createElement('div');
@@ -1203,26 +1203,26 @@
     }
 
     /**
-     * 에이전트 제거
+     * Remove agent
      */
     function removeAgent(sessionId) {
       state.agents.delete(sessionId);
       updateStats();
 
-      // in-place DOM 제거
+      // in-place DOM removal
       const existingCard = document.querySelector(`[data-card-id="${sessionId}"]`);
       if (existingCard) {
         existingCard.remove();
       }
 
-      // 에이전트가 0개면 빈 상태 렌더
+      // Render empty state if no agents remain
       if (state.agents.size === 0) {
         render();
       }
     }
 
     /**
-     * 통계 업데이트
+     * Update statistics
      */
     function updateStats() {
       const agents = Array.from(state.agents.values());
@@ -1243,31 +1243,31 @@
     }
 
     /**
-     * 연결 상태 업데이트
+     * Update connection status
      */
     function updateConnectionStatus(connected) {
       const banner = document.getElementById('disconnectBanner');
       if (connected) {
         elements.statusIndicator.classList.add('connected');
         elements.statusIndicator.classList.remove('disconnected');
-        elements.connectionStatus.textContent = '연결됨';
+        elements.connectionStatus.textContent = 'Connected';
         if (banner) banner.style.display = 'none';
       } else {
         elements.statusIndicator.classList.remove('connected');
         elements.statusIndicator.classList.add('disconnected');
-        elements.connectionStatus.textContent = '연결 안됨';
+        elements.connectionStatus.textContent = 'Disconnected';
         if (banner) banner.style.display = '';
       }
     }
 
     /**
-     * 라이브 피드 추가
+     * Add live feed entry
      */
     function addLiveFeed(type, message) {
       const item = document.createElement('div');
       item.className = 'live-feed-item';
 
-      const time = new Date().toLocaleTimeString('ko-KR', {
+      const time = new Date().toLocaleTimeString('en-US', {
         hour: '2-digit',
         minute: '2-digit',
         second: '2-digit'
@@ -1280,14 +1280,14 @@
 
       elements.liveFeedList.insertBefore(item, elements.liveFeedList.firstChild);
 
-      // 최대 30개만 유지
+      // Keep only 30 items max
       while (elements.liveFeedList.children.length > 30) {
         elements.liveFeedList.removeChild(elements.liveFeedList.lastChild);
       }
     }
 
     /**
-     * 렌더링
+     * Render
      */
     function render() {
       const officeView = document.getElementById('officeView');
@@ -1314,7 +1314,7 @@
     }
 
     /**
-     * 개요 렌더링
+     * Render overview
      */
     function renderOverview() {
       const agents = Array.from(state.agents.values());
@@ -1329,40 +1329,40 @@
           <div class="stat-card">
             <div class="stat-header">
               <span class="stat-icon">👥</span>
-              <span class="stat-label">전체 에이전트</span>
+              <span class="stat-label">Total Agents</span>
             </div>
             <div class="stat-value">${state.stats.total}</div>
-            <div class="stat-change">현재 활성: ${state.stats.active}</div>
+            <div class="stat-change">Currently active: ${state.stats.active}</div>
           </div>
           <div class="stat-card">
             <div class="stat-header">
               <span class="stat-icon">⚡</span>
-              <span class="stat-label">활성 에이전트</span>
+              <span class="stat-label">Active Agents</span>
             </div>
             <div class="stat-value">${state.stats.active}</div>
-            <div class="stat-change">작업/생각 중</div>
+            <div class="stat-change">Working / Thinking</div>
           </div>
           <div class="stat-card">
             <div class="stat-header">
               <span class="stat-icon">✅</span>
-              <span class="stat-label">완료된 작업</span>
+              <span class="stat-label">Completed Tasks</span>
             </div>
             <div class="stat-value">${state.stats.completed}</div>
-            <div class="stat-change">완료율: ${state.stats.total > 0 ? Math.round(state.stats.completed / state.stats.total * 100) : 0}%</div>
+            <div class="stat-change">Completion rate: ${state.stats.total > 0 ? Math.round(state.stats.completed / state.stats.total * 100) : 0}%</div>
           </div>
           <div class="stat-card">
             <div class="stat-header">
               <span class="stat-icon">💰</span>
-              <span class="stat-label">총 비용</span>
+              <span class="stat-label">Total Cost</span>
             </div>
             <div class="stat-value">$${state.stats.totalCost.toFixed(4)}</div>
-            <div class="stat-change">토큰: ${formatNumber(state.stats.totalTokens)}</div>
+            <div class="stat-change">Tokens: ${formatNumber(state.stats.totalTokens)}</div>
           </div>
         </div>
 
         <div class="section">
           <div class="section-header">
-            <h2 class="section-title">활성 에이전트</h2>
+            <h2 class="section-title">Active Agents</h2>
           </div>
           <div class="agents-grid">
             ${agents.slice(0, 6).map(agent => renderAgentCard(agent)).join('')}
@@ -1372,7 +1372,7 @@
     }
 
     /**
-     * 에이전트 뷰 렌더링
+     * Render agents view
      */
     function renderAgents() {
       const agents = Array.from(state.agents.values());
@@ -1382,7 +1382,7 @@
         return;
       }
 
-      // 프로젝트별 그룹화
+      // Group by project
       const groups = new Map();
       for (const agent of agents) {
         const project = agent.projectPath?.split('/').pop() || 'Default';
@@ -1398,7 +1398,7 @@
         html += `
           <div class="section-header">
             <h2 class="section-title">📁 ${project}</h2>
-            <span style="color: var(--color-text-muted);">${projectAgents.length} 에이전트</span>
+            <span style="color: var(--color-text-muted);">${projectAgents.length} agent(s)</span>
           </div>
           <div class="agents-grid" style="margin-bottom: 24px;">
             ${projectAgents.map(agent => renderAgentCard(agent)).join('')}
@@ -1411,7 +1411,7 @@
     }
 
     /**
-     * 토큰 뷰 렌더링
+     * Render tokens view
      */
     function renderTokens() {
       const agents = Array.from(state.agents.values());
@@ -1421,7 +1421,7 @@
         return;
       }
 
-      // 정렬: 토큰 사용량 순
+      // Sort by token usage
       const sortedAgents = [...agents].sort((a, b) => {
         const aTokens = (a.tokenUsage?.inputTokens || 0) + (a.tokenUsage?.outputTokens || 0);
         const bTokens = (b.tokenUsage?.inputTokens || 0) + (b.tokenUsage?.outputTokens || 0);
@@ -1437,27 +1437,27 @@
           <div class="stat-card" style="grid-column: span 2;">
             <div class="stat-header">
               <span class="stat-icon">📈</span>
-              <span class="stat-label">총 토큰 사용량</span>
+              <span class="stat-label">Total Token Usage</span>
             </div>
             <div class="stat-value">${formatNumber(state.stats.totalTokens)}</div>
-            <div class="stat-change">활성화된 모든 세션 합산</div>
+            <div class="stat-change">Sum of all active sessions</div>
           </div>
           <div class="stat-card" style="grid-column: span 2;">
             <div class="stat-header">
               <span class="stat-icon">💰</span>
-              <span class="stat-label">총 예상 비용</span>
+              <span class="stat-label">Total Estimated Cost</span>
             </div>
             <div class="stat-value">$${state.stats.totalCost.toFixed(4)}</div>
-            <div class="stat-change">Claude API 청구 기준</div>
+            <div class="stat-change">Based on Claude API billing</div>
           </div>
         </div>
 
         <div class="section">
           <div class="section-header">
-            <h2 class="section-title">토큰 사용량 상세</h2>
+            <h2 class="section-title">Token Usage Details</h2>
           </div>
           <div class="token-chart">
-            <h3 class="chart-title">에이전트별 토큰 사용량</h3>
+            <h3 class="chart-title">Token Usage by Agent</h3>
             <div class="chart-bars">
               ${sortedAgents.map(agent => {
         const inputTokens = agent.tokenUsage?.inputTokens || 0;
@@ -1483,7 +1483,7 @@
 
         <div class="section">
           <div class="section-header">
-            <h2 class="section-title">모든 에이전트</h2>
+            <h2 class="section-title">All Agents</h2>
           </div>
           <div class="agents-grid">
             ${sortedAgents.map(agent => renderAgentCard(agent)).join('')}
@@ -1493,7 +1493,7 @@
     }
 
     /**
-     * 에이전트 카드 렌더링
+     * Render agent card
      */
     function renderAgentCard(agent) {
       const statusClass = getStatusClass(agent.status);
@@ -1518,7 +1518,7 @@
               <span>${agent.name || 'Agent'}</span>
               ${typeBadge}
             </div>
-            <div class="agent-status ${statusClass}" role="status" aria-label="상태: ${statusText}">${statusText}</div>
+            <div class="agent-status ${statusClass}" role="status" aria-label="Status: ${statusText}">${statusText}</div>
           </div>
           <div class="agent-body">
             <div class="agent-row">
@@ -1526,15 +1526,15 @@
               <span class="agent-id">${agent.id.slice(0, 8)}...</span>
             </div>
             <div class="agent-row">
-              <span class="agent-label">프로젝트:</span>
+              <span class="agent-label">Project:</span>
               <span>${project}</span>
             </div>
             <div class="agent-row">
-              <span class="agent-label">모델:</span>
+              <span class="agent-label">Model:</span>
               <span>${model}</span>
             </div>
             <div class="agent-row">
-              <span class="agent-label">현재 활동:</span>
+              <span class="agent-label">Activity:</span>
               <span class="current-activity ${isActive ? 'is-active' : ''}">${currentActivity}</span>
             </div>
           </div>
@@ -1560,23 +1560,23 @@
     }
 
     /**
-     * 빈 상태 렌더링
+     * Render empty state
      */
     function renderEmpty() {
       elements.mainContent.innerHTML = `
         <div class="empty-state">
           <div class="empty-state-icon">😴</div>
-          <div class="empty-state-title">대기 중</div>
-          <div class="empty-state-text">현재 작업 중인 에이전트가 없습니다.</div>
+          <div class="empty-state-title">Standby</div>
+          <div class="empty-state-text">No agents are currently working.</div>
           <div class="empty-state-text" style="font-size: 0.875rem; margin-top: 8px;">
-            Claude CLI에서 작업을 시작하면 자동으로 표시됩니다
+            Agents will appear automatically when you start a task in Claude CLI
           </div>
         </div>
       `;
     }
 
     /**
-     * 상태 클래스 반환
+     * Get status CSS class
      */
     function getStatusClass(status) {
       const statusMap = {
@@ -1592,23 +1592,23 @@
     }
 
     /**
-     * 상태 텍스트 반환
+     * Get status display text
      */
     function getStatusText(status) {
       const statusMap = {
-        'working': '작업 중',
-        'thinking': '생각 중',
-        'waiting': '대기 중',
-        'done': '완료',
-        'completed': '완료',
-        'help': '도움 필요',
-        'error': '에러'
+        'working': 'Working',
+        'thinking': 'Thinking',
+        'waiting': 'Waiting',
+        'done': 'Done',
+        'completed': 'Done',
+        'help': 'Needs Help',
+        'error': 'Error'
       };
       return statusMap[status] || status;
     }
 
     /**
-     * 타입 뱃지 반환
+     * Get type badge
      */
     function getTypeBadge(agent) {
       if (agent.metadata?.isSubagent) {
@@ -1621,7 +1621,7 @@
     }
 
     /**
-     * 시간 포맷
+     * Format time
      */
     function formatTime(ms) {
       const totalSeconds = Math.floor(ms / 1000);
@@ -1639,7 +1639,7 @@
     }
 
     /**
-     * 숫자 포맷
+     * Format number
      */
     function formatNumber(num) {
       if (num >= 1000000) {
@@ -1652,7 +1652,7 @@
 
     // ─── Heatmap (Activity History) ───
 
-    /** 히트맵 상태 */
+    /** Heatmap state */
     const heatmapState = {
       data: null,       // { days: { "YYYY-MM-DD": {...} }, lastScan }
       metric: 'sessions', // sessions | tokens | cost | toolUses
@@ -1660,7 +1660,7 @@
     };
 
     /**
-     * 히트맵 데이터 fetch
+     * Fetch heatmap data
      */
     async function fetchHeatmapData() {
       heatmapState.loading = true;
@@ -1668,21 +1668,21 @@
         const res = await fetch('http://localhost:3000/api/heatmap?days=365');
         heatmapState.data = await res.json();
       } catch (e) {
-        console.error('[Heatmap] fetch 실패:', e);
+        console.error('[Heatmap] fetch failed:', e);
         heatmapState.data = { days: {}, lastScan: 0 };
       }
       heatmapState.loading = false;
     }
 
     /**
-     * 히트맵 뷰 렌더링
+     * Render heatmap view
      */
     async function renderHeatmap() {
       if (!heatmapState.data) {
         elements.mainContent.innerHTML = `
           <div class="loading">
             <div class="loading-spinner"></div>
-            <span>활동 기록을 불러오는 중...</span>
+            <span>Loading activity history...</span>
           </div>`;
         await fetchHeatmapData();
       }
@@ -1690,35 +1690,35 @@
       const days = heatmapState.data.days || {};
       const metric = heatmapState.metric;
 
-      // 요약 통계 계산
+      // Calculate summary statistics
       const summary = calculateHeatmapSummary(days);
 
-      // 메트릭 버튼
+      // Metric buttons
       const metrics = [
-        { key: 'sessions', label: '세션 수' },
-        { key: 'tokens', label: '토큰' },
-        { key: 'cost', label: '비용' },
-        { key: 'toolUses', label: '도구 사용' },
+        { key: 'sessions', label: 'Sessions' },
+        { key: 'tokens', label: 'Tokens' },
+        { key: 'cost', label: 'Cost' },
+        { key: 'toolUses', label: 'Tool Uses' },
       ];
 
       elements.mainContent.innerHTML = `
         <div class="heatmap-container">
           <div class="heatmap-summary">
             <div class="stat-card">
-              <div class="stat-header"><span class="stat-icon">📊</span><span class="stat-label">총 세션</span></div>
+              <div class="stat-header"><span class="stat-icon">📊</span><span class="stat-label">Total Sessions</span></div>
               <div class="stat-value">${summary.totalSessions}</div>
             </div>
             <div class="stat-card">
-              <div class="stat-header"><span class="stat-icon">📆</span><span class="stat-label">활성 일수</span></div>
+              <div class="stat-header"><span class="stat-icon">📆</span><span class="stat-label">Active Days</span></div>
               <div class="stat-value">${summary.activeDays}</div>
             </div>
             <div class="stat-card">
-              <div class="stat-header"><span class="stat-icon">🔥</span><span class="stat-label">연속 일수</span></div>
+              <div class="stat-header"><span class="stat-icon">🔥</span><span class="stat-label">Current Streak</span></div>
               <div class="stat-value">${summary.currentStreak}</div>
-              <div class="stat-change">최장: ${summary.longestStreak}일</div>
+              <div class="stat-change">Longest: ${summary.longestStreak} days</div>
             </div>
             <div class="stat-card">
-              <div class="stat-header"><span class="stat-icon">💰</span><span class="stat-label">총 비용</span></div>
+              <div class="stat-header"><span class="stat-icon">💰</span><span class="stat-label">Total Cost</span></div>
               <div class="stat-value">$${summary.totalCost.toFixed(2)}</div>
             </div>
           </div>
@@ -1735,13 +1735,13 @@
               <div class="heatmap-grid" id="heatmapGrid"></div>
             </div>
             <div class="heatmap-legend">
-              <span>적음</span>
+              <span>Less</span>
               <div class="heatmap-legend-cell level-0" style="background:#1e293b"></div>
               <div class="heatmap-legend-cell level-1" style="background:#1e3a5f"></div>
               <div class="heatmap-legend-cell level-2" style="background:#1d4ed8"></div>
               <div class="heatmap-legend-cell level-3" style="background:#3b82f6"></div>
               <div class="heatmap-legend-cell level-4" style="background:#60a5fa"></div>
-              <span>많음</span>
+              <span>More</span>
             </div>
           </div>
         </div>`;
@@ -1751,22 +1751,22 @@
     }
 
     /**
-     * 히트맵 그리드 구성 (53주 x 7일)
+     * Build heatmap grid (53 weeks x 7 days)
      */
     function buildHeatmapGrid(days, metric) {
       const grid = document.getElementById('heatmapGrid');
       if (!grid) return;
 
-      // 오늘 기준 53주(371일)
+      // 53 weeks (371 days) from today
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       const dayOfWeek = today.getDay(); // 0=Sun
 
-      // 시작일: 52주 전 일요일
+      // Start date: Sunday 52 weeks ago
       const startDate = new Date(today);
       startDate.setDate(today.getDate() - (52 * 7 + dayOfWeek));
 
-      // 메트릭별 값 추출 함수
+      // Value extraction function per metric
       const getValue = (dayData) => {
         if (!dayData) return 0;
         switch (metric) {
@@ -1778,7 +1778,7 @@
         }
       };
 
-      // 모든 날짜의 값 수집 (레벨 계산용)
+      // Collect all date values (for level calculation)
       const allValues = [];
       const cellData = [];
       const d = new Date(startDate);
@@ -1790,7 +1790,7 @@
         d.setDate(d.getDate() + 1);
       }
 
-      // 비제로 값만으로 퍼센타일 기반 레벨 계산
+      // Calculate percentile-based levels from non-zero values only
       const nonZero = allValues.filter(v => v > 0).sort((a, b) => a - b);
       const getLevel = (val) => {
         if (val === 0) return 0;
@@ -1804,16 +1804,16 @@
         return 4;
       };
 
-      // 요일 라벨 (첫 열)
+      // Day labels (first column)
       const dayLabels = ['', 'Mon', '', 'Wed', '', 'Fri', ''];
       grid.innerHTML = '';
 
-      // 월 라벨을 위한 배열 (week index → month name)
+      // Array for month labels (week index -> month name)
       const weekMonths = new Map();
       let cellIdx = 0;
 
-      // 첫 열: 요일 라벨
-      // 월 라벨 자리 (빈칸)
+      // First column: day labels
+      // Month label placeholder (empty)
       const monthSpacer = document.createElement('div');
       monthSpacer.className = 'heatmap-month-label';
       monthSpacer.textContent = '';
@@ -1826,21 +1826,21 @@
         grid.appendChild(label);
       }
 
-      // 주별 열 생성
+      // Generate weekly columns
       let currentWeek = -1;
       let lastMonth = -1;
 
       for (let i = 0; i < cellData.length; i++) {
         const cell = cellData[i];
         const cellDate = new Date(cell.date + 'T00:00:00');
-        // 주가 바뀌면 월 라벨 추가
+        // Add month label when week changes
         if (cell.dayOfWeek === 0 || i === 0) {
           currentWeek++;
           const monthIdx = cellDate.getMonth();
           const monthLabel = document.createElement('div');
           monthLabel.className = 'heatmap-month-label';
 
-          // 월이 바뀌는 첫 주에만 라벨 표시
+          // Show label only on the first week of a new month
           if (monthIdx !== lastMonth) {
             const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
                                 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -1850,7 +1850,7 @@
           grid.appendChild(monthLabel);
         }
 
-        // 셀 생성
+        // Create cell
         const level = getLevel(cell.value);
         const div = document.createElement('div');
         div.className = `heatmap-cell level-${level}`;
@@ -1860,7 +1860,7 @@
     }
 
     /**
-     * 히트맵 툴팁 이벤트
+     * Heatmap tooltip events
      */
     function attachHeatmapTooltips(days) {
       const tooltip = document.getElementById('heatmapTooltip');
@@ -1876,24 +1876,24 @@
         const dateStr = cell.dataset.date;
         const dayData = days[dateStr];
         const dateObj = new Date(dateStr + 'T00:00:00');
-        const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
-        const formatted = `${dateStr} (${dayNames[dateObj.getDay()]}요일)`;
+        const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        const formatted = `${dateStr} (${dayNames[dateObj.getDay()]})`;
 
         let html = `<div class="tt-date">${formatted}</div>`;
         if (dayData) {
           html += `
-            <div class="tt-row"><span class="tt-label">세션</span><span class="tt-value">${dayData.sessions || 0}개</span></div>
-            <div class="tt-row"><span class="tt-label">사용자 메시지</span><span class="tt-value">${dayData.userMessages || 0}</span></div>
-            <div class="tt-row"><span class="tt-label">어시스턴트 메시지</span><span class="tt-value">${dayData.assistantMessages || 0}</span></div>
-            <div class="tt-row"><span class="tt-label">도구 사용</span><span class="tt-value">${dayData.toolUses || 0}회</span></div>
-            <div class="tt-row"><span class="tt-label">입력 토큰</span><span class="tt-value">${formatNumber(dayData.inputTokens || 0)}</span></div>
-            <div class="tt-row"><span class="tt-label">출력 토큰</span><span class="tt-value">${formatNumber(dayData.outputTokens || 0)}</span></div>
-            <div class="tt-row"><span class="tt-label">예상 비용</span><span class="tt-value">$${(dayData.estimatedCost || 0).toFixed(4)}</span></div>`;
+            <div class="tt-row"><span class="tt-label">Sessions</span><span class="tt-value">${dayData.sessions || 0}</span></div>
+            <div class="tt-row"><span class="tt-label">User Messages</span><span class="tt-value">${dayData.userMessages || 0}</span></div>
+            <div class="tt-row"><span class="tt-label">Assistant Messages</span><span class="tt-value">${dayData.assistantMessages || 0}</span></div>
+            <div class="tt-row"><span class="tt-label">Tool Uses</span><span class="tt-value">${dayData.toolUses || 0}</span></div>
+            <div class="tt-row"><span class="tt-label">Input Tokens</span><span class="tt-value">${formatNumber(dayData.inputTokens || 0)}</span></div>
+            <div class="tt-row"><span class="tt-label">Output Tokens</span><span class="tt-value">${formatNumber(dayData.outputTokens || 0)}</span></div>
+            <div class="tt-row"><span class="tt-label">Est. Cost</span><span class="tt-value">$${(dayData.estimatedCost || 0).toFixed(4)}</span></div>`;
           if (dayData.projects && dayData.projects.length > 0) {
-            html += `<div class="tt-row"><span class="tt-label">프로젝트</span><span class="tt-value">${dayData.projects.join(', ')}</span></div>`;
+            html += `<div class="tt-row"><span class="tt-label">Projects</span><span class="tt-value">${dayData.projects.join(', ')}</span></div>`;
           }
         } else {
-          html += '<div class="tt-row"><span class="tt-label">활동 없음</span></div>';
+          html += '<div class="tt-row"><span class="tt-label">No activity</span></div>';
         }
 
         tooltip.innerHTML = html;
@@ -1903,7 +1903,7 @@
         tooltip.style.left = (rect.left + rect.width / 2) + 'px';
         tooltip.style.top = (rect.top - tooltip.offsetHeight - 8) + 'px';
 
-        // 화면 밖으로 나가면 보정
+        // Adjust if tooltip goes off-screen
         const ttRect = tooltip.getBoundingClientRect();
         if (ttRect.left < 0) tooltip.style.left = '8px';
         if (ttRect.right > window.innerWidth) tooltip.style.left = (window.innerWidth - ttRect.width - 8) + 'px';
@@ -1918,7 +1918,7 @@
     }
 
     /**
-     * 히트맵 요약 통계 계산
+     * Calculate heatmap summary statistics
      */
     function calculateHeatmapSummary(days) {
       let totalSessions = 0;
@@ -1933,7 +1933,7 @@
         if ((d.sessions || 0) > 0) activeDays++;
       }
 
-      // 연속 일수(streak) 계산 — 오늘부터 과거로
+      // Calculate streak (days) -- from today backwards
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       let currentStreak = 0;
@@ -1949,7 +1949,7 @@
         }
       }
 
-      // 최장 연속 일수 (날짜 연속성 검증)
+      // Longest streak (date continuity check)
       let longestStreak = 0;
       let streak = 0;
       if (dates.length > 0) {
@@ -1972,19 +1972,19 @@
     }
 
     /**
-     * 히트맵 메트릭 전환
+     * Switch heatmap metric
      */
     function changeHeatmapMetric(metric) {
       heatmapState.metric = metric;
       renderHeatmap();
     }
-    // 전역 접근 (onclick에서 호출)
+    // Global access (called from onclick)
     window.changeHeatmapMetric = changeHeatmapMetric;
 
     /**
-     * 네비게이션 초기화
+     * Initialize navigation
      */
-    // 탭별 스크롤 위치 저장소
+    // Per-tab scroll position storage
     const _tabScrollPositions = {};
 
     function initNavigation() {
@@ -1993,7 +1993,7 @@
         item.addEventListener('click', () => {
           const prevView = state.currentView;
 
-          // 이전 탭의 스크롤 위치 저장
+          // Save scroll position of previous tab
           if (elements.mainContent) {
             _tabScrollPositions[prevView] = elements.mainContent.scrollTop;
           }
@@ -2010,14 +2010,14 @@
             stopOffice();
           }
 
-          // 히트맵 탭 진입 시 데이터 갱신
+          // Refresh data when entering heatmap tab
           if (state.currentView === 'heatmap') {
-            heatmapState.data = null; // 강제 re-fetch
+            heatmapState.data = null; // Force re-fetch
           }
 
           render();
 
-          // 새 탭의 스크롤 위치 복원
+          // Restore scroll position for new tab
           if (elements.mainContent && _tabScrollPositions[state.currentView]) {
             elements.mainContent.scrollTop = _tabScrollPositions[state.currentView];
           }
@@ -2026,30 +2026,30 @@
     }
 
     /**
-     * 초기화
+     * Initialize
      */
     function init() {
-      // 네비게이션 초기화
+      // Initialize navigation
       initNavigation();
 
-      // 저장된 탭 복원 — nav 아이템 active 클래스 동기화
+      // Restore saved tab -- sync nav item active class
       const navItems = document.querySelectorAll('.nav-item');
       navItems.forEach(i => {
         if (i.dataset.view === state.currentView) i.classList.add('active');
         else i.classList.remove('active');
       });
 
-      // SSE 연결
+      // SSE connection
       connectSSE();
 
-      // 현재 뷰에 맞는 초기화
+      // Initialize for current view
       if (state.currentView === 'office') {
         initOffice();
       }
       render();
     }
 
-    // DOM 로드 시 초기화
+    // Initialize on DOM load
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', init);
     } else {

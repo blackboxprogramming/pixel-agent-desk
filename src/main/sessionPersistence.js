@@ -1,6 +1,6 @@
 /**
  * Session Persistence
- * state.json 저장/복구 — 앱 재시작 시 활성 세션 복원
+ * state.json save/restore — recover active sessions on app restart
  */
 
 const path = require('path');
@@ -13,8 +13,8 @@ function getPersistedStatePath() {
 }
 
 /**
- * PID가 실제 Claude Code CLI 프로세스인지 확인
- * Claude Desktop App (WindowsApps/Claude.app)은 제외
+ * Check if the PID is an actual Claude Code CLI process
+ * Excludes Claude Desktop App (WindowsApps/Claude.app)
  */
 function isClaudeProcess(pid) {
   try {
@@ -26,9 +26,9 @@ function isClaudeProcess(pid) {
       if (!result) return false;
       const lower = result.toLowerCase();
       if (!lower.includes('claude')) return false;
-      // Claude Desktop App 제외 (WindowsApps 경로)
+      // Exclude Claude Desktop App (WindowsApps path)
       if (lower.includes('windowsapps')) return false;
-      // node.exe로 실행되는 Claude Code CLI만 허용
+      // Only allow Claude Code CLI running via node.exe
       return lower.startsWith('node.exe|');
     } else {
       const result = execFileSync('ps', ['-p', String(pid), '-o', 'command='],
@@ -36,7 +36,7 @@ function isClaudeProcess(pid) {
       if (!result) return false;
       const lower = result.toLowerCase();
       if (!lower.includes('claude')) return false;
-      // Claude Desktop App 제외 (macOS .app 번들)
+      // Exclude Claude Desktop App (macOS .app bundle)
       if (lower.includes('claude.app')) return false;
       return true;
     }
@@ -83,7 +83,7 @@ function recoverExistingSessions({ agentManager, sessionPids, firstPreToolUseDon
         continue;
       }
 
-      // PID 존재 확인
+      // Check if PID exists
       try {
         process.kill(pid, 0);
       } catch (e) {
@@ -91,7 +91,7 @@ function recoverExistingSessions({ agentManager, sessionPids, firstPreToolUseDon
         continue;
       }
 
-      // PID가 실제 Claude 프로세스인지 확인 (Windows PID 재사용 방지)
+      // Verify PID is an actual Claude process (prevent Windows PID reuse)
       if (!isClaudeProcess(pid)) {
         debugLog(`[Recover] Skipped agent (pid=${pid} is not claude): ${agent.id.slice(0, 8)}`);
         continue;
@@ -125,7 +125,7 @@ function recoverExistingSessions({ agentManager, sessionPids, firstPreToolUseDon
     debugLog(`[Recover] Error reading or parsing state.json: ${e.message}`);
   }
 
-  // 복구된 에이전트 state.json 초기화
+  // Reset state.json after recovering agents
   try {
     fs.writeFileSync(statePath, JSON.stringify({ agents: [], pids: [] }, null, 2), 'utf-8');
     debugLog('[Recover] state.json reset after recovery');

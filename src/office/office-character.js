@@ -19,7 +19,7 @@ var officeCharacters = {
     // Map dashboard status to office state
     const officeState = this._mapStatus(agentData.status);
 
-    // 서버 할당 avatarIndex 우선, 폴백: 해시 계산
+    // Prefer server-assigned avatarIndex, fallback: hash calculation
     var avatarIdx = (agentData.avatarIndex !== undefined && agentData.avatarIndex !== null)
       ? agentData.avatarIndex : avatarIndexFromId(agentData.id);
     var avatarFile = AVATAR_FILES[avatarIdx] || AVATAR_FILES[0];
@@ -116,7 +116,7 @@ var officeCharacters = {
     const char = this.characters.get(agentId);
     if (!char || char.deskIndex !== undefined) return;
 
-    // 빈 좌석 수집
+    // Collect available seats
     const usedDesks = new Set(this.seatAssignments.keys());
     const deskCoords = officeCoords.desk || [];
     var available = [];
@@ -125,12 +125,12 @@ var officeCharacters = {
     }
 
     if (available.length === 0) {
-      // D6: 좌석 초과 — 오버플로 처리
+      // D6: Seats exceeded — overflow handling
       char.deskOverflow = true;
       return;
     }
 
-    // 에이전트 ID 기반 결정론적 랜덤 (같은 에이전트는 같은 선호)
+    // Deterministic random based on agent ID (same agent gets same preference)
     var hash = avatarIndexFromId(agentId);
     var idx = available[hash % available.length];
     char.deskIndex = idx;
@@ -172,10 +172,10 @@ var officeCharacters = {
         char.agentState === 'error' || char.agentState === 'help') {
       char.restTimer = 0;
 
-      // D6: 좌석 초과 에이전트 — desk 근처 idle 좌표로 이동 (서서 일하기)
+      // D6: Overflow agent — move to idle coords near desk (standing work)
       if (char.deskOverflow) {
         if (char.path.length > 0 && char.pathIndex < char.path.length) return;
-        // desk 영역 근처의 idle 좌표 중 하나를 선택
+        // Select one of the idle coords near the desk area
         var nearIdle = this._findNearDeskIdleSpot(char);
         if (nearIdle) {
           if (Math.abs(char.x - nearIdle.x) < 5 && Math.abs(char.y - nearIdle.y) < 5) return;
@@ -254,7 +254,7 @@ var officeCharacters = {
       if (char.agentState === 'done' || char.agentState === 'completed') {
         char.currentAnim = 'dance';
       } else if (char.deskOverflow) {
-        // D6: 오버플로 에이전트는 서서 일하는 자세
+        // D6: Overflow agent uses standing work pose
         char.facingDir = 'down';
         char.currentAnim = 'down_idle';
       } else if (char.agentState !== 'error') {
@@ -323,18 +323,18 @@ var officeCharacters = {
     }
 
     if (text) {
-      // working/thinking/help/error 상태는 상태 유지 중 영구 표시
+      // working/thinking/help/error states are displayed persistently while active
       var isPersistent = (status === 'working' || status === 'thinking' || status === 'help' || status === 'error');
       char.bubble = { text: text, icon: icon, expiresAt: isPersistent ? Infinity : Date.now() + 8000 };
     }
   },
 
-  /** D6: desk 영역 근처의 빈 idle 좌표 찾기 (오버플로 에이전트용) */
+  /** D6: Find an available idle coordinate near the desk area (for overflow agents) */
   _findNearDeskIdleSpot: function (char) {
     var coords = officeCoords;
     if (!coords || !coords.idle || !coords.desk || coords.desk.length === 0) return null;
 
-    // desk 영역의 평균 좌표 계산
+    // Calculate average coordinates of the desk area
     var avgX = 0, avgY = 0;
     for (var i = 0; i < coords.desk.length; i++) {
       avgX += coords.desk[i].x;
@@ -343,7 +343,7 @@ var officeCharacters = {
     avgX /= coords.desk.length;
     avgY /= coords.desk.length;
 
-    // idle 좌표를 desk 평균 좌표와의 거리 순으로 정렬
+    // Sort idle coords by distance from desk average coordinates
     var occupied = {};
     this.characters.forEach(function (a) {
       if (a.id === char.id) return;
@@ -364,7 +364,7 @@ var officeCharacters = {
       return da - db;
     });
 
-    // 결정론적 선택 (에이전트 ID 기반)
+    // Deterministic selection (based on agent ID)
     if (candidates.length === 0) return null;
     var hash = avatarIndexFromId(char.id);
     return candidates[hash % Math.min(candidates.length, 5)];

@@ -1,6 +1,6 @@
 /**
  * Pixel Agent Desk — Main Process Orchestrator
- * 모듈 초기화, 이벤트 연결, 앱 생명주기 관리
+ * Module initialization, event wiring, and app lifecycle management
  */
 
 const { app, BrowserWindow, ipcMain } = require('electron');
@@ -23,7 +23,7 @@ const { createWindowManager } = require('./main/windowManager');
 const { registerIpcHandlers } = require('./main/ipcHandlers');
 
 // =====================================================
-// 에러 로그 파일로 저장
+// Save error logs to file
 // =====================================================
 const errorLogPath = path.join(__dirname, 'startup-error.log');
 const originalConsoleError = console.error;
@@ -39,7 +39,7 @@ console.error = (...args) => {
   originalConsoleError.apply(console, args);
 };
 
-// 전역 에러 핸들러
+// Global error handler
 process.on('uncaughtException', (error) => {
   const timestamp = new Date().toISOString();
   const logMessage = `[${timestamp}] UNCAUGHT EXCEPTION: ${error.message}\n${error.stack}\n`;
@@ -65,7 +65,7 @@ const debugLog = (msg) => {
 };
 
 // =====================================================
-// 앱 설정
+// App configuration
 // =====================================================
 app.commandLine.appendSwitch('high-dpi-support', '1');
 app.commandLine.appendSwitch('force-device-scale-factor', '1');
@@ -74,7 +74,7 @@ app.commandLine.appendSwitch('log-level', '3');
 process.env.ELECTRON_DISABLE_LOGGING = '1';
 
 // =====================================================
-// 앱 인스턴스
+// App instances
 // =====================================================
 let agentManager = null;
 let sessionScanner = null;
@@ -85,22 +85,22 @@ let hookProcessor = null;
 app.whenReady().then(() => {
   debugLog('========== Pixel Agent Desk started ==========');
 
-  // 0. Claude CLI 훅 자동 등록
+  // 0. Auto-register Claude CLI hooks
   registerClaudeHooks(debugLog);
 
-  // 1. 에이전트 매니저 즉시 시작
+  // 1. Start agent manager immediately
   agentManager = new AgentManager();
   agentManager.start();
 
-  // 2. 세션 스캐너 시작
+  // 2. Start session scanner
   sessionScanner = new SessionScanner(agentManager, debugLog);
   sessionScanner.start(60_000);
 
-  // 2.5. 히트맵 스캐너 시작
+  // 2.5. Start heatmap scanner
   heatmapScanner = new HeatmapScanner(debugLog);
   heatmapScanner.start(300_000);
 
-  // 3. 훅 프로세서 생성
+  // 3. Create hook processor
   hookProcessor = createHookProcessor({
     agentManager,
     sessionPids,
@@ -108,7 +108,7 @@ app.whenReady().then(() => {
     detectClaudePidByTranscript,
   });
 
-  // 4. 윈도우 매니저 생성
+  // 4. Create window manager
   windowManager = createWindowManager({
     agentManager,
     sessionScanner,
@@ -119,7 +119,7 @@ app.whenReady().then(() => {
     getWindowSizeForAgents,
   });
 
-  // 5. IPC 핸들러 등록
+  // 5. Register IPC handlers
   registerIpcHandlers({
     agentManager,
     sessionPids,
@@ -129,7 +129,7 @@ app.whenReady().then(() => {
     errorHandler,
   });
 
-  // 6. 백그라운드 서비스 시작
+  // 6. Start background services
   startHookServer({
     processHookEvent: hookProcessor.processHookEvent,
     debugLog,
@@ -139,7 +139,7 @@ app.whenReady().then(() => {
   windowManager.startDashboardServer();
   startLivenessChecker({ agentManager, debugLog });
 
-  // 7. 기존 활성 세션 복구
+  // 7. Recover existing active sessions
   recoverExistingSessions({
     agentManager,
     sessionPids,
@@ -148,7 +148,7 @@ app.whenReady().then(() => {
     errorHandler,
   });
 
-  // 8. 테스트용 에이전트 (Main, Sub, Team 골고루)
+  // 8. Test agents (mix of Main, Sub, and Team)
   const ENABLE_TEST_AGENTS = false;
   if (ENABLE_TEST_AGENTS) {
     const testSubagents = [
@@ -160,10 +160,10 @@ app.whenReady().then(() => {
     testSubagents.forEach(agent => agentManager.updateAgent(agent, 'test'));
   }
 
-  // 9. UI 생성
+  // 9. Create UI
   windowManager.createWindow();
 
-  // Renderer가 준비되면 현재 상태 전송
+  // Send current state when renderer is ready
   ipcMain.once('renderer-ready', () => {
     debugLog('[Main] renderer-ready event received!');
 
@@ -203,7 +203,7 @@ app.whenReady().then(() => {
         dw.webContents.send('dashboard-agent-removed', data);
       }
       savePersistedState({ agentManager, sessionPids });
-      // 모든 에이전트가 사라지면 대시보드도 닫기
+      // Close dashboard when all agents are gone
       if (agentManager.getAllAgents().length === 0) {
         windowManager.closeDashboardWindow();
       }
@@ -219,13 +219,13 @@ app.whenReady().then(() => {
         dw.webContents.send('dashboard-agent-removed', { type: 'batch', ...data });
       }
       savePersistedState({ agentManager, sessionPids });
-      // 모든 에이전트가 사라지면 대시보드도 닫기
+      // Close dashboard when all agents are gone
       if (agentManager.getAllAgents().length === 0) {
         windowManager.closeDashboardWindow();
       }
     });
 
-    // 준비 전에 도착했던 세션 및 복구된 데이터 전송
+    // Send sessions that arrived before ready and recovered data
     const allAgents = agentManager.getAllAgents();
     if (allAgents.length > 0) {
       debugLog(`[Main] Sending ${allAgents.length} agents to newly ready renderer`);
@@ -265,7 +265,7 @@ app.on('before-quit', () => {
     windowManager.stopKeepAlive();
   }
 
-  // 모든 리소스 정리
+  // Clean up all resources
   if (hookProcessor) hookProcessor.cleanup();
   sessionPids.clear();
 

@@ -1,30 +1,30 @@
 /**
  * Multi-Agent Manager
- * - P2-10: 상태 변경 시에만 이벤트 emit
- * - 표시 이름 개선: slug 없을 경우 cwd basename 사용
+ * - P2-10: Only emit events on state changes
+ * - Display name improvement: use cwd basename when slug is absent
  */
 
 const EventEmitter = require('events');
 const path = require('path');
 const { formatSlugToDisplayName } = require('./utils');
 
-// AVATAR_FILES 개수 (renderer/config.js, office/office-config.js와 동기화)
+// AVATAR_FILES count (synced with renderer/config.js and office/office-config.js)
 const AVATAR_COUNT = 23;
 
 class AgentManager extends EventEmitter {
   constructor() {
     super();
     this.agents = new Map();
-    this._pendingEmit = new Map(); // agentId → { timer, state } — UI emit 디바운스
-    this._usedAvatarIndices = new Set(); // 현재 사용 중인 아바타 인덱스
+    this._pendingEmit = new Map(); // agentId → { timer, state } — UI emit debounce
+    this._usedAvatarIndices = new Set(); // Currently used avatar indices
     this.config = {
-      softLimitWarning: 50,  // 소프트 워닝 (차단하지 않음, 로그만)
-      stateDebounceMs: 500,  // Working→Thinking 전환 디바운스 (ms)
+      softLimitWarning: 50,  // Soft warning (does not block, only logs)
+      stateDebounceMs: 500,  // Working→Thinking transition debounce (ms)
     };
   }
 
   start() {
-    // 에이전트 정리는 main.js liveness checker(PID 기반)가 전담
+    // Agent cleanup is handled exclusively by the main.js liveness checker (PID-based)
     console.log('[AgentManager] Started');
   }
 
@@ -39,14 +39,14 @@ class AgentManager extends EventEmitter {
   }
 
   /**
-   * 에이전트 업데이트 또는 추가
+   * Update or add an agent
    */
   updateAgent(entry, source = 'log') {
     const agentId = entry.sessionId || entry.agentId || entry.uuid || 'unknown';
     const now = Date.now();
     const existingAgent = this.agents.get(agentId);
 
-    // 소프트 워닝: 에이전트 수가 많으면 경고만 (등록 차단하지 않음)
+    // Soft warning: only warn if agent count is high (does not block registration)
     if (!existingAgent && this.agents.size >= this.config.softLimitWarning) {
       console.warn(`[AgentManager] ⚠ ${this.agents.size} agents active (soft limit: ${this.config.softLimitWarning}). Consider checking for stale sessions.`);
     }
@@ -58,7 +58,7 @@ class AgentManager extends EventEmitter {
     let activeStartTime = existingAgent ? existingAgent.activeStartTime : now;
     let lastDuration = existingAgent ? existingAgent.lastDuration : 0;
 
-    // 활성 상태 진입 시 (Done/Error/Help/Waiting -> Working/Thinking)
+    // When entering active state (Done/Error/Help/Waiting -> Working/Thinking)
     const isPassive = (s) => s === 'Done' || s === 'Help' || s === 'Error' || s === 'Waiting';
     const isActive = (s) => s === 'Working' || s === 'Thinking';
 
@@ -66,7 +66,7 @@ class AgentManager extends EventEmitter {
       activeStartTime = now;
     }
 
-    // 다시 Done으로 돌아갈 때, 마지막 소요 시간 저장
+    // When returning to Done, save the last elapsed duration
     if (newState === 'Done' && existingAgent && isActive(prevState)) {
       lastDuration = now - activeStartTime;
     }
@@ -79,21 +79,21 @@ class AgentManager extends EventEmitter {
       displayName: this.formatDisplayName(entry.slug, entry.projectPath),
       projectPath: entry.projectPath,
       jsonlPath: entry.jsonlPath || (existingAgent ? existingAgent.jsonlPath : null),
-      // Task 3A-2: 신규 메타데이터 필드
+      // Task 3A-2: New metadata fields
       model: entry.model !== undefined ? entry.model : (existingAgent ? existingAgent.model : null),
       permissionMode: entry.permissionMode !== undefined ? entry.permissionMode : (existingAgent ? existingAgent.permissionMode : null),
       source: entry.source !== undefined ? entry.source : (existingAgent ? existingAgent.source : null),
       agentType: entry.agentType !== undefined ? entry.agentType : (existingAgent ? existingAgent.agentType : null),
-      // 현재 사용 중인 도구
+      // Currently active tool
       currentTool: entry.currentTool !== undefined ? entry.currentTool : (existingAgent ? existingAgent.currentTool : null),
-      // Stop 이벤트의 마지막 응답 메시지
+      // Last response message from the Stop event
       lastMessage: entry.lastMessage !== undefined ? entry.lastMessage : (existingAgent ? existingAgent.lastMessage : null),
-      // SessionEnd 종료 사유
+      // SessionEnd termination reason
       endReason: entry.endReason !== undefined ? entry.endReason : (existingAgent ? existingAgent.endReason : null),
-      // 팀 정보
+      // Team information
       teammateName: entry.teammateName !== undefined ? entry.teammateName : (existingAgent ? existingAgent.teammateName : null),
       teamName: entry.teamName !== undefined ? entry.teamName : (existingAgent ? existingAgent.teamName : null),
-      // Task 3A-3: 토큰 사용량 (훅에서 누적, 스캐너에서 보완)
+      // Task 3A-3: Token usage (accumulated from hooks, supplemented by scanner)
       tokenUsage: entry.tokenUsage !== undefined ? entry.tokenUsage : (existingAgent ? existingAgent.tokenUsage : { inputTokens: 0, outputTokens: 0, estimatedCost: 0 }),
       avatarIndex: existingAgent ? existingAgent.avatarIndex : this._assignAvatarIndex(agentId),
       isSubagent: entry.isSubagent || (existingAgent ? existingAgent.isSubagent : false),
@@ -110,7 +110,7 @@ class AgentManager extends EventEmitter {
 
     this.agents.set(agentId, agentData);
 
-    // 서브에이전트 상태 변화 시 부모 상태 리프레시
+    // Refresh parent state when subagent state changes
     if (agentData.parentId) {
       this.reEvaluateParentState(agentData.parentId);
     }
@@ -127,14 +127,14 @@ class AgentManager extends EventEmitter {
   }
 
   /**
-   * 상태 전환 디바운스 — Working→Thinking 전환 시 500ms 지연하여 깜빡임 방지
-   * Thinking→Working (승격)은 즉시 적용, 기존 pending 취소
+   * State transition debounce — delays Working→Thinking transitions by 500ms to prevent flickering
+   * Thinking→Working (promotion) is applied immediately, canceling any pending emit
    */
   _emitWithDebounce(agentId, prevState, newState, displayName) {
     const isDowngrade = (prevState === 'Working' && newState === 'Thinking');
 
     if (isDowngrade) {
-      // Working→Thinking: 지연 emit (500ms 내 Working 재진입 시 취소됨)
+      // Working→Thinking: delayed emit (canceled if Working is re-entered within 500ms)
       this._cancelPendingEmit(agentId);
       const timer = setTimeout(() => {
         this._pendingEmit.delete(agentId);
@@ -145,7 +145,7 @@ class AgentManager extends EventEmitter {
       }, this.config.stateDebounceMs);
       this._pendingEmit.set(agentId, { timer, state: newState });
     } else {
-      // 즉시 emit — pending이 있으면 취소
+      // Immediate emit — cancel any pending emit
       this._cancelPendingEmit(agentId);
       this.emit('agent-updated', this.getAgentWithEffectiveState(agentId));
     }
@@ -166,7 +166,7 @@ class AgentManager extends EventEmitter {
     this._releaseAvatarIndex(agent.avatarIndex);
     this.agents.delete(agentId);
 
-    // 서브에이전트 삭제 시 부모 상태 리프레시
+    // Refresh parent state when subagent is removed
     if (agent.parentId) {
       this.reEvaluateParentState(agent.parentId);
     }
@@ -184,22 +184,22 @@ class AgentManager extends EventEmitter {
     const agent = this.agents.get(agentId);
     if (!agent) return null;
 
-    // 이미 Help나 Error 상태면 그대로 반환 (최우선순위)
+    // Return as-is if already in Help or Error state (highest priority)
     if (agent.state === 'Help' || agent.state === 'Error') return agent;
 
-    // 자식(Subagent)들 상태 확인
+    // Check children (subagent) states
     const children = Array.from(this.agents.values()).filter(a => a.parentId === agentId);
 
-    // 1. 자식 중 하나라도 Help/Error 면 부모 상태도 Help로 표시 (사용자 개입 필요 알림)
+    // 1. If any child is Help/Error, show parent as Help (notify user intervention needed)
     const someChildNeedsHelp = children.some(c => c.state === 'Help' || c.state === 'Error');
     if (someChildNeedsHelp) {
       return { ...agent, state: 'Help', isAggregated: true };
     }
 
-    // 이미 Working 상태면 그대로 반환
+    // Return as-is if already in Working state
     if (agent.state === 'Working' || agent.state === 'Thinking') return agent;
 
-    // 2. 자식 중 하나라도 Working/Thinking 이면 부모 상태도 Working으로 표시
+    // 2. If any child is Working/Thinking, show parent as Working
     const someChildWorking = children.some(c => c.state === 'Working' || c.state === 'Thinking');
     if (someChildWorking) {
       return { ...agent, state: 'Working', isAggregated: true };
@@ -211,25 +211,25 @@ class AgentManager extends EventEmitter {
   reEvaluateParentState(parentId) {
     const parent = this.agents.get(parentId);
     if (!parent) return;
-    // 부모의 상태 업데이트 이벤트를 강제로 발생시켜 렌더러가 Working으로 인지하게 함
+    // Force emit parent state update event so the renderer recognizes it as Working
     this.emit('agent-updated', this.getAgentWithEffectiveState(parentId));
   }
   getAgent(agentId) { return this.agents.get(agentId) || null; }
   getAgentCount() { return this.agents.size; }
   dismissAgent(agentId) { return this.removeAgent(agentId); }
 
-  // 에이전트 정리는 main.js liveness checker(PID 기반)가 전담
-  // cleanupIdleAgents 삭제 — 타이머 기반 정리는 PID 체크와 충돌
+  // Agent cleanup is handled exclusively by the main.js liveness checker (PID-based)
+  // cleanupIdleAgents removed — timer-based cleanup conflicts with PID checks
 
   getAgentsByActivity() {
     return this.getAllAgents().sort((a, b) => b.lastActivity - a.lastActivity);
   }
 
   /**
-   * 표시 이름 결정
-   * 1. slug (예: "toasty-sparking-lecun" → "Toasty Sparking Lecun")
-   * 2. projectPath의 basename (예: "pixel-agent-desk-master")
-   * 3. 폴백: "Agent"
+   * Determine display name
+   * 1. slug (e.g., "toasty-sparking-lecun" → "Toasty Sparking Lecun")
+   * 2. basename of projectPath (e.g., "pixel-agent-desk-master")
+   * 3. Fallback: "Agent"
    */
   formatDisplayName(slug, projectPath) {
     if (slug) {
@@ -242,7 +242,7 @@ class AgentManager extends EventEmitter {
   }
 
   /**
-   * 아바타 인덱스 할당 — 해시 충돌 시 미사용 아바타 우선
+   * Assign avatar index — prioritize unused avatars on hash collision
    */
   _assignAvatarIndex(agentId) {
     let hash = 0;
@@ -258,7 +258,7 @@ class AgentManager extends EventEmitter {
       return hashIdx;
     }
 
-    // 해시 충돌: 미사용 아바타 순회
+    // Hash collision: iterate through unused avatars
     for (let i = 0; i < AVATAR_COUNT; i++) {
       if (!this._usedAvatarIndices.has(i)) {
         this._usedAvatarIndices.add(i);
@@ -266,12 +266,12 @@ class AgentManager extends EventEmitter {
       }
     }
 
-    // 모든 아바타 사용 중이면 해시 폴백
+    // All avatars in use, fall back to hash index
     return hashIdx;
   }
 
   /**
-   * 아바타 인덱스 해제
+   * Release avatar index
    */
   _releaseAvatarIndex(avatarIndex) {
     if (avatarIndex !== undefined && avatarIndex !== null) {

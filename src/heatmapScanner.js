@@ -1,8 +1,8 @@
 /**
  * Heatmap Scanner
- * ~/.claude/projects/ 하위 JSONL 트랜스크립트를 스캔하여
- * 일별 활동 통계(세션, 메시지, 도구사용, 토큰, 비용)를 집계한다.
- * GitHub 잔디 스타일 히트맵 데이터 제공용.
+ * Scans JSONL transcripts under ~/.claude/projects/ to aggregate
+ * daily activity statistics (sessions, messages, tool usage, tokens, cost).
+ * Provides data for GitHub contribution graph-style heatmap.
  */
 
 'use strict';
@@ -12,7 +12,7 @@ const os = require('os');
 const path = require('path');
 const { MODEL_PRICING, DEFAULT_PRICING, roundCost } = require('./pricing');
 
-/** 보존 기한 (일) */
+/** Retention period (days) */
 const MAX_AGE_DAYS = 400;
 
 class HeatmapScanner {
@@ -23,24 +23,24 @@ class HeatmapScanner {
     this.debugLog = debugLog;
     this.scanInterval = null;
 
-    /** 영속화 경로 (인스턴스 생성 시점의 homedir 사용) */
+    /** Persistence path (uses homedir at instance creation time) */
     this.persistDir = path.join(os.homedir(), '.pixel-agent-desk');
     this.persistFile = path.join(this.persistDir, 'heatmap.json');
 
-    /** @type {Record<string, DayStats>} "YYYY-MM-DD" → 통계 */
+    /** @type {Record<string, DayStats>} "YYYY-MM-DD" → statistics */
     this.days = {};
-    /** 마지막 스캔 timestamp */
+    /** Last scan timestamp */
     this.lastScan = 0;
-    /** 파일별 증분 오프셋 @type {Record<string, FileOffset>} */
+    /** Per-file incremental offsets @type {Record<string, FileOffset>} */
     this.fileOffsets = {};
 
-    // 영속화 데이터 복원
+    // Restore persisted data
     this._loadPersisted();
   }
 
   /**
-   * 주기적 스캔 시작
-   * @param {number} intervalMs (기본 5분)
+   * Start periodic scanning
+   * @param {number} intervalMs (default 5 minutes)
    */
   start(intervalMs = 300_000) {
     this.debugLog('[HeatmapScanner] Started');
@@ -58,7 +58,7 @@ class HeatmapScanner {
   }
 
   /**
-   * 전체 스캔 — ~/.claude/projects/ 하위 모든 JSONL 탐색
+   * Full scan — search all JSONL files under ~/.claude/projects/
    */
   async scanAll() {
     const claudeDir = path.join(os.homedir(), '.claude', 'projects');
@@ -88,7 +88,7 @@ class HeatmapScanner {
   }
 
   /**
-   * 일별 통계 반환
+   * Return daily statistics
    * @returns {{ days: Record<string, DayStats>, lastScan: number }}
    */
   getDailyStats() {
@@ -96,7 +96,7 @@ class HeatmapScanner {
   }
 
   /**
-   * 범위 조회
+   * Range query
    * @param {string} startDate "YYYY-MM-DD"
    * @param {string} endDate "YYYY-MM-DD"
    * @returns {Record<string, DayStats>}
@@ -111,10 +111,10 @@ class HeatmapScanner {
     return result;
   }
 
-  // ─── 내부 구현 ───
+  // ─── Internal implementation ───
 
   /**
-   * 디렉토리를 재귀 탐색하여 .jsonl 파일 목록 반환
+   * Recursively traverse directory and return list of .jsonl files
    * @param {string} dir
    * @returns {string[]}
    */
@@ -131,15 +131,15 @@ class HeatmapScanner {
         }
       }
     } catch {
-      // 권한 문제 등 무시
+      // Ignore permission issues, etc.
     }
     return results;
   }
 
   /**
-   * 단일 파일 증분 스캔
+   * Incremental scan of a single file
    * @param {string} filePath
-   * @returns {number} 새로 처리한 엔트리 수
+   * @returns {number} Number of newly processed entries
    */
   _scanFile(filePath) {
     let stat;
@@ -151,14 +151,14 @@ class HeatmapScanner {
 
     const offset = this.fileOffsets[filePath];
 
-    // 변경이 없으면 스킵
+    // Skip if no changes
     if (offset && offset.size === stat.size && offset.mtimeMs === stat.mtimeMs) {
       return 0;
     }
 
     const startByte = offset ? offset.bytesRead : 0;
     if (startByte >= stat.size) {
-      // 파일이 줄어든 경우 (truncated/rotated) → 처음부터 다시 읽기
+      // File shrank (truncated/rotated) → re-read from the beginning
       if (startByte > stat.size) {
         this.fileOffsets[filePath] = { bytesRead: 0, size: 0, mtimeMs: 0 };
         return this._scanFile(filePath);
@@ -166,10 +166,10 @@ class HeatmapScanner {
       return 0;
     }
 
-    // 프로젝트 이름 추출 — ~/.claude/projects/{project-hash}/ 구조
+    // Extract project name — ~/.claude/projects/{project-hash}/ structure
     const projectName = this._extractProjectName(filePath);
 
-    // 증분 읽기
+    // Incremental read
     const fd = fs.openSync(filePath, 'r');
     let buf;
     try {
@@ -187,7 +187,7 @@ class HeatmapScanner {
       let entry;
       try { entry = JSON.parse(line); } catch { continue; }
       if (!entry.timestamp) continue;
-      // sidechain(compact 내부) 무시
+      // Ignore sidechain (internal to compact)
       if (entry.isSidechain) continue;
 
       const dateKey = entry.timestamp.slice(0, 10); // "YYYY-MM-DD"
@@ -196,7 +196,7 @@ class HeatmapScanner {
       this._ensureDay(dateKey);
       const day = this.days[dateKey];
 
-      // 세션 카운트 (sessionId 기반 유니크)
+      // Session count (unique by sessionId)
       const sessionId = entry.sessionId || null;
 
       if (entry.type === 'user') {
@@ -210,7 +210,7 @@ class HeatmapScanner {
       if (entry.type === 'assistant' && entry.message) {
         day.assistantMessages++;
 
-        // 토큰 집계
+        // Token aggregation
         const usage = entry.message.usage;
         if (usage) {
           const input = usage.input_tokens || 0;
@@ -221,7 +221,7 @@ class HeatmapScanner {
           day.inputTokens += input + cacheRead + cacheCreate;
           day.outputTokens += output;
 
-          // 비용 계산
+          // Cost calculation
           const model = entry.message.model || null;
           const pricing = (model && MODEL_PRICING[model]) || DEFAULT_PRICING;
           day.estimatedCost += roundCost(
@@ -232,7 +232,7 @@ class HeatmapScanner {
           );
         }
 
-        // tool_use 블록 수
+        // tool_use block count
         if (Array.isArray(entry.message.content)) {
           for (const block of entry.message.content) {
             if (block.type === 'tool_use') day.toolUses++;
@@ -240,7 +240,7 @@ class HeatmapScanner {
         }
       }
 
-      // 프로젝트 추가
+      // Add project
       if (projectName && !day._projects.has(projectName)) {
         day._projects.add(projectName);
         day.projects.push(projectName);
@@ -249,7 +249,7 @@ class HeatmapScanner {
       count++;
     }
 
-    // 오프셋 업데이트
+    // Update offset
     this.fileOffsets[filePath] = {
       bytesRead: stat.size,
       size: stat.size,
@@ -260,7 +260,7 @@ class HeatmapScanner {
   }
 
   /**
-   * 날짜 키의 일별 통계 초기화
+   * Initialize daily statistics for a date key
    * @param {string} dateKey "YYYY-MM-DD"
    */
   _ensureDay(dateKey) {
@@ -274,7 +274,7 @@ class HeatmapScanner {
         outputTokens: 0,
         estimatedCost: 0,
         projects: [],
-        // 내부 추적용 (직렬화 시 제거)
+        // Internal tracking (excluded during serialization)
         _sessions: new Set(),
         _projects: new Set(),
       };
@@ -282,8 +282,8 @@ class HeatmapScanner {
   }
 
   /**
-   * 파일 경로에서 프로젝트 이름 추출
-   * ~/.claude/projects/{encoded-project-path}/... → 디코딩 시도
+   * Extract project name from file path
+   * ~/.claude/projects/{encoded-project-path}/... → attempt to decode
    * @param {string} filePath
    * @returns {string|null}
    */
@@ -293,16 +293,16 @@ class HeatmapScanner {
     if (!match) return null;
 
     const encoded = match[1];
-    // Claude CLI는 프로젝트 경로를 인코딩하여 디렉토리명으로 사용
-    // 마지막 세그먼트가 의미있는 프로젝트명
+    // Claude CLI encodes the project path as a directory name
+    // The last segment is the meaningful project name
     const parts = encoded.split('-');
-    // 너무 짧으면 그대로 반환
+    // Return as-is if too short
     if (parts.length <= 1) return encoded;
     return parts[parts.length - 1] || encoded;
   }
 
   /**
-   * MAX_AGE_DAYS 이상 된 데이터 정리
+   * Clean up data older than MAX_AGE_DAYS
    */
   _pruneOldDays() {
     const cutoff = new Date();
@@ -317,7 +317,7 @@ class HeatmapScanner {
   }
 
   /**
-   * 영속화 저장
+   * Save persisted data
    */
   _savePersisted() {
     try {
@@ -325,7 +325,7 @@ class HeatmapScanner {
         fs.mkdirSync(this.persistDir, { recursive: true });
       }
 
-      // _sessions, _projects Set은 직렬화에서 제외
+      // Exclude _sessions and _projects Sets from serialization
       const serialDays = {};
       for (const [date, stats] of Object.entries(this.days)) {
         const { _sessions, _projects, ...rest } = stats;
@@ -346,7 +346,7 @@ class HeatmapScanner {
   }
 
   /**
-   * 영속화 복원
+   * Load persisted data
    */
   _loadPersisted() {
     try {

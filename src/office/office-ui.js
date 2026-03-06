@@ -98,7 +98,7 @@ function drawOfficeBubble(ctx, agent, yOffset) {
     ctx.strokeStyle = 'rgba(203, 213, 225, 0.5)';
     ctx.stroke();
 
-    // Tail (6px 반폭, 7px 높이 — styles.css와 통일)
+    // Tail (6px half-width, 7px height — consistent with styles.css)
     ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
     ctx.beginPath();
     ctx.moveTo(baseX - 6, boxY + boxH);

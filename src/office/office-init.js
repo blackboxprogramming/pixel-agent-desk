@@ -16,7 +16,7 @@ async function initOffice() {
   const canvas = document.getElementById('office-canvas');
   if (!canvas) return;
 
-  // 로딩 인디케이터 표시
+  // Show loading indicator
   const container = canvas.parentElement;
   let loadingEl = container.querySelector('.office-loading');
   if (!loadingEl) {
@@ -47,7 +47,7 @@ async function initOffice() {
     console.error('[Office] Failed to fetch agents:', e);
   }
 
-  // 로딩 인디케이터 제거
+  // Remove loading indicator
   if (loadingEl) loadingEl.remove();
 
   officeInitialized = true;

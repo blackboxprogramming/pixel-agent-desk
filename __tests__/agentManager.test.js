@@ -1,6 +1,6 @@
 /**
  * P0-4: Test Coverage - agentManager.js Tests
- * AgentManager 핵심 로직 테스트
+ * AgentManager core logic tests
  */
 
 const AgentManager = require('../src/agentManager');
@@ -20,7 +20,7 @@ describe('AgentManager', () => {
 
   describe('start and stop', () => {
     test('start runs without error', () => {
-      // 에이전트 정리는 main.js liveness checker(PID)가 전담
+      // Agent cleanup is handled exclusively by main.js liveness checker (PID-based)
       expect(() => manager.start()).not.toThrow();
     });
 
@@ -151,7 +151,7 @@ describe('AgentManager', () => {
       manager.updateAgent({ sessionId: 'agent-2', state: 'Working' });
       const result = manager.updateAgent({ sessionId: 'agent-3', state: 'Working' });
 
-      // 소프트 리밋: 등록은 차단하지 않고 경고만 출력
+      // Soft limit: does not block registration, only logs a warning
       expect(result).not.toBeNull();
       expect(manager.getAgentCount()).toBe(3);
       expect(warnSpy).toHaveBeenCalled();
@@ -216,8 +216,8 @@ describe('AgentManager', () => {
     });
   });
 
-  // cleanupIdleAgents 삭제됨 — 에이전트 정리는 main.js liveness checker(PID 기반)가 전담
-  // 타이머 기반 정리는 PID가 살아있는 에이전트를 잘못 죽이므로 제거
+  // cleanupIdleAgents removed — agent cleanup is handled exclusively by main.js liveness checker (PID-based)
+  // Timer-based cleanup was removed because it could incorrectly kill agents whose PIDs are still alive
 
   describe('getAgentWithEffectiveState', () => {
     test('returns agent with effective state for parent with working children', () => {

@@ -1,15 +1,15 @@
 /**
  * Hook Event Processor
- * processHookEvent() switch문 + handleSessionStart/End + cleanupAgentResources
+ * processHookEvent() switch statement + handleSessionStart/End + cleanupAgentResources
  */
 
 const path = require('path');
 const { MODEL_PRICING, DEFAULT_PRICING, roundCost } = require('../pricing');
 
 function createHookProcessor({ agentManager, sessionPids, debugLog, detectClaudePidByTranscript }) {
-  // 내부 상태
+  // Internal state
   const pendingSessionStarts = [];
-  const firstPreToolUseDone = new Map(); // sessionId → boolean
+  const firstPreToolUseDone = new Map(); // sessionId -> boolean
 
   function processHookEvent(data) {
     const event = data.hook_event_name;
@@ -18,7 +18,7 @@ function createHookProcessor({ agentManager, sessionPids, debugLog, detectClaude
 
     debugLog(`[Hook] ${event} session=${sessionId.slice(0, 8)}`);
 
-    // SessionStart가 누락되어도 첫 이벤트에서 즉시 에이전트 생성 (범용 fallback)
+    // Create agent immediately on first event even if SessionStart was missed (universal fallback)
     if (agentManager && event !== 'SessionStart' && event !== 'SessionEnd') {
       const existing = agentManager.getAgent(sessionId);
       if (!existing) {
@@ -42,7 +42,7 @@ function createHookProcessor({ agentManager, sessionPids, debugLog, detectClaude
           agentType: data.agent_type || null,
         };
 
-        // compact/resume/clear: 기존 에이전트가 있으면 업데이트만 (중복 생성 방지)
+        // compact/resume/clear: only update if existing agent found (prevent duplicate creation)
         if (sessionSource !== 'startup' && agentManager) {
           const existing = agentManager.getAgent(sessionId);
           if (existing) {
@@ -111,7 +111,7 @@ function createHookProcessor({ agentManager, sessionPids, debugLog, detectClaude
         if (agentManager && firstPreToolUseDone.has(sessionId)) {
           const agent = agentManager.getAgent(sessionId);
           if (agent) {
-            // Task 3A-3: tool_response.token_usage 추출
+            // Task 3A-3: Extract tool_response.token_usage
             const tokenUsage = data.tool_response && data.tool_response.token_usage;
             if (tokenUsage) {
               const cur = agent.tokenUsage || { inputTokens: 0, outputTokens: 0, estimatedCost: 0 };

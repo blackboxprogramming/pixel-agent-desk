@@ -12,7 +12,7 @@ const { adaptAgentToDashboard } = require('./dashboardAdapter');
 const PORT = 3000;
 const HTML_FILE = path.join(__dirname, '..', 'dashboard.html');
 
-// MIME 타입 매핑
+// MIME type mapping
 const MIME_TYPES = {
   '.html': 'text/html',
   '.css': 'text/css',
@@ -30,7 +30,7 @@ let sessionScanner = null;  // Task 3B-2
 let heatmapScanner = null;
 let missionControlWindow = null;
 const wsClients = new Set();
-const sseClients = new Set();  // Task 3B-1: SSE 클라이언트
+const sseClients = new Set();  // Task 3B-1: SSE clients
 
 /**
  * Set the agent manager reference
@@ -38,7 +38,7 @@ const sseClients = new Set();  // Task 3B-1: SSE 클라이언트
 function setAgentManager(manager) {
   agentManager = manager;
 
-  // Task 3B-1: AgentManager 이벤트 → SSE 브로드캐스트
+  // Task 3B-1: AgentManager events → SSE broadcast
   if (agentManager) {
     agentManager.on('agent-added', (agent) => {
       const adapted = adaptAgentToDashboard(agent);
@@ -145,7 +145,7 @@ function calculateStats() {
     }
   }
 
-  // Task 3B-2: 토큰/비용 합산
+  // Task 3B-2: Token/cost aggregation
   let totalInputTokens = 0;
   let totalOutputTokens = 0;
   let totalEstimatedCost = 0;
@@ -168,7 +168,7 @@ function calculateStats() {
 }
 
 /**
- * Task 3B-1: SSE 브로드캐스트
+ * Task 3B-1: SSE broadcast
  */
 function broadcastSSE(type, data) {
   const payload = `event: ${type}\ndata: ${JSON.stringify({ type, data, timestamp: Date.now() })}\n\n`;
@@ -235,9 +235,9 @@ function handleRequest(req, res) {
   if (pathname.startsWith('/public/') || pathname.startsWith('/src/office/')) {
     const baseDir = path.resolve(__dirname, '..');
     const decoded = decodeURIComponent(pathname);
-    const resolved = path.resolve(baseDir, decoded.slice(1)); // pathname 앞 '/' 제거
+    const resolved = path.resolve(baseDir, decoded.slice(1)); // Remove leading '/' from pathname
 
-    // 경로 트래버설 방지: resolve 후 baseDir 밖이면 차단
+    // Prevent path traversal: block if resolved path is outside baseDir
     const rel = path.relative(baseDir, resolved);
     if (rel.startsWith('..') || path.isAbsolute(rel)) {
       res.writeHead(403, { 'Content-Type': 'text/plain' });
@@ -284,7 +284,7 @@ function handleAPIRequest(req, res, url) {
     return;
   }
 
-  // ─── Task 3B-1: SSE 이벤트 스트림 ───
+  // ─── Task 3B-1: SSE event stream ───
   if (pathname === '/api/events' && req.method === 'GET') {
     res.writeHead(200, {
       'Content-Type': 'text/event-stream',
@@ -294,7 +294,7 @@ function handleAPIRequest(req, res, url) {
     res.write(`event: connected\ndata: ${JSON.stringify({ type: 'connected', timestamp: Date.now() })}\n\n`);
     sseClients.add(res);
 
-    // Keep-alive (15초)
+    // Keep-alive (15 seconds)
     const keepAlive = setInterval(() => res.write(': keepalive\n\n'), 15000);
     req.on('close', () => {
       clearInterval(keepAlive);
@@ -316,7 +316,7 @@ function handleAPIRequest(req, res, url) {
     return;
   }
 
-  // ─── POST /api/agents/:id/dismiss — 에이전트 수동 제거 (Task 3B-2) ───
+  // ─── POST /api/agents/:id/dismiss — Manual agent removal (Task 3B-2) ───
   if (pathname.match(/^\/api\/agents\/[^/]+\/dismiss$/) && req.method === 'POST') {
     if (!agentManager) {
       res.writeHead(503, { 'Content-Type': 'application/json' });
@@ -345,7 +345,7 @@ function handleAPIRequest(req, res, url) {
       res.end(JSON.stringify({ error: 'Agent not found' }));
       return;
     }
-    // 세션 스캔 결과 병합
+    // Merge session scan results
     const sessionStats = sessionScanner ? sessionScanner.getSessionStats(agentId) : null;
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ ...agent, sessionStats }));
@@ -360,7 +360,7 @@ function handleAPIRequest(req, res, url) {
     return;
   }
 
-  // ─── GET /api/sessions — JSONL 스캔 결과 (Task 3B-2) ───
+  // ─── GET /api/sessions — JSONL scan results (Task 3B-2) ───
   if (pathname === '/api/sessions' && req.method === 'GET') {
     const allStats = sessionScanner ? sessionScanner.getAllStats() : {};
     res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -491,7 +491,7 @@ function startServer() {
     // Server started silently — debugLog handles startup logging
   });
 
-  // 에러 처리
+  // Error handling
   server.on('error', (err) => {
     if (err.code === 'EADDRINUSE') {
       console.error(`[Dashboard Server] ❌ Port ${PORT} already in use!`);

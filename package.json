@@ -1,7 +1,7 @@
 {
   "name": "pixel-agent-desk",
   "version": "2.0.0",
-  "description": "Claude CLI JSONL logs를 실시간으로 감시하여 멀티 에이전트를 픽셀 아바타로 시각화",
+  "description": "Visualize multi-agent Claude CLI sessions as pixel avatars in real time",
   "main": "src/main.js",
   "scripts": {
     "postinstall": "node src/install.js",

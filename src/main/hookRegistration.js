@@ -1,6 +1,6 @@
 /**
  * Claude CLI Hook Registration
- * Claude CLI 설정 파일에서 HTTP 훅을 읽기/쓰기/등록
+ * Read/write/register HTTP hooks from Claude CLI config file
  */
 
 const path = require('path');
@@ -21,7 +21,7 @@ function readClaudeConfig(debugLog) {
       return JSON.parse(content);
     }
   } catch (error) {
-    debugLog(`[Hook] Claude 설정 읽기 실패: ${error.message}`);
+    debugLog(`[Hook] Failed to read Claude config: ${error.message}`);
   }
   return {};
 }
@@ -34,10 +34,10 @@ function writeClaudeConfig(config, debugLog) {
       fs.mkdirSync(dir, { recursive: true });
     }
     fs.writeFileSync(configPath, JSON.stringify(config, null, 2), 'utf-8');
-    debugLog('[Hook] Claude 설정 파일 업데이트 완료');
+    debugLog('[Hook] Claude config file updated');
     return true;
   } catch (error) {
-    debugLog(`[Hook] Claude 설정 쓰기 실패: ${error.message}`);
+    debugLog(`[Hook] Failed to write Claude config: ${error.message}`);
     return false;
   }
 }
@@ -65,14 +65,14 @@ function isHookRegistered(debugLog) {
 }
 
 function registerClaudeHooks(debugLog) {
-  debugLog('[Hook] Claude CLI 훅 등록 상태 확인...');
+  debugLog('[Hook] Checking Claude CLI hook registration status...');
 
   if (isHookRegistered(debugLog)) {
-    debugLog('[Hook] ✓ 훅이 이미 등록되어 있습니다.');
+    debugLog('[Hook] Hooks are already registered.');
     return true;
   }
 
-  debugLog('[Hook] 훅 등록 시작...');
+  debugLog('[Hook] Starting hook registration...');
 
   const config = readClaudeConfig(debugLog);
 
@@ -103,11 +103,11 @@ function registerClaudeHooks(debugLog) {
   }
 
   if (writeClaudeConfig(config, debugLog)) {
-    debugLog('[Hook] Claude CLI 훅 등록 완료');
+    debugLog('[Hook] Claude CLI hook registration complete');
     return true;
   }
 
-  debugLog('[Hook] ❌ 훅 등록 실패');
+  debugLog('[Hook] Hook registration failed');
   return false;
 }
 

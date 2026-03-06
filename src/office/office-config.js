@@ -73,7 +73,7 @@ const STATE_ZONE_MAP = {
   'error':     'desk',
 };
 
-// State colors for nametags (통합 팔레트 — styles.css, dashboard.html과 동기화)
+// State colors for nametags (unified palette — synced with styles.css, dashboard.html)
 const STATE_COLORS = {
   idle:      '#94a3b8',
   working:   '#f97316',

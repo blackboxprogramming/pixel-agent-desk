@@ -21,11 +21,11 @@ process.stdin.on('end', () => {
             process.exit(0);
         }
 
-        // ~ 처리 (Windows에서는 백슬래시 그대로 유지)
+        // Handle ~ (keep backslashes as-is on Windows)
         const resolvedPath = transcriptPath.replace(/^~/, os.homedir());
 
-        // JSONL 파일의 마지막 유효 줄에서 실제 sessionId 읽기
-        // (Claude CLI의 session_id가 파일 내부 sessionId와 다를 수 있음)
+        // Read actual sessionId from the last valid line of the JSONL file
+        // (Claude CLI's session_id may differ from the sessionId inside the file)
         let realSessionId = sessionId;
         try {
             const content = fs.readFileSync(resolvedPath, 'utf-8');
@@ -46,7 +46,7 @@ process.stdin.on('end', () => {
         const line = JSON.stringify({
             type: 'system',
             subtype: 'SessionEnd',
-            sessionId: realSessionId,   // 실제 JSONL 내부 sessionId 사용
+            sessionId: realSessionId,   // Use actual sessionId from inside the JSONL
             timestamp: new Date().toISOString()
         }) + '\n';
 
