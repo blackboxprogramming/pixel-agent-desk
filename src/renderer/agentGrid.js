@@ -344,38 +344,37 @@ function updateGridLayout() {
 
   mains.sort((a, b) => (a.data.projectPath || '').localeCompare(b.data.projectPath || ''));
 
-  // Remove all children except idleContainer
-  Array.from(agentGrid.children).forEach(child => {
-    if (child !== idleContainer) {
-      agentGrid.removeChild(child);
-    }
-  });
+  // Combine sorted cards for placement
+  const sorted = [...mains, ...orphans];
 
+  // In-place grid position update (no DOM remove/re-insert to prevent flickering)
   let col = 1;
   const currentRow = 1;
 
-  // Place main agents (single row)
-  mains.forEach(mainItem => {
-    if (col > 10) { col = 1; }
+  // Remove stale party backgrounds
+  agentGrid.querySelectorAll('.agent-party-bg').forEach(el => el.remove());
 
-    mainItem.card.classList.remove('group-start');
-    mainItem.card.style.gridColumn = col;
-    mainItem.card.style.gridRow = currentRow;
-    agentGrid.appendChild(mainItem.card);
-
-    col++;
-  });
-
-  // Place orphan children (parent not yet arrived) as standalone cards
-  orphans.forEach(item => {
+  sorted.forEach(item => {
     if (col > 10) { col = 1; }
 
     item.card.classList.remove('group-start');
     item.card.style.gridColumn = col;
     item.card.style.gridRow = currentRow;
-    agentGrid.appendChild(item.card);
+
+    // Only append if not already a child of agentGrid
+    if (item.card.parentNode !== agentGrid) {
+      agentGrid.appendChild(item.card);
+    }
 
     col++;
+  });
+
+  // Remove cards that are no longer in the sorted set (e.g., migrated to satellite)
+  const sortedIds = new Set(sorted.map(s => s.card.dataset.agentId));
+  Array.from(agentGrid.querySelectorAll('.agent-card')).forEach(card => {
+    if (!sortedIds.has(card.dataset.agentId)) {
+      card.remove();
+    }
   });
 }
 

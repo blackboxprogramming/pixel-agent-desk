@@ -206,7 +206,6 @@ function createAgentCard(agent) {
   typeTag.className = `type-tag ${typeClass}`;
   typeTag.textContent = basename || 'Agent';
   typeTag.title = agent.projectPath || '';
-  card.appendChild(typeTag);
 
   // Agent name — show slug-based name only (omit project folder name)
   const nameBadge = document.createElement('div');
@@ -224,8 +223,9 @@ function createAgentCard(agent) {
   // Satellite tray (for mini child avatars)
   const satelliteTray = createSatelliteTray();
 
-  // Assemble card (satellite tray at top, above type-tag)
+  // Assemble card (satellite tray first = visually top)
   card.appendChild(satelliteTray);
+  card.appendChild(typeTag);
   card.appendChild(bubble);
   card.appendChild(timerEl);
   card.appendChild(character);
