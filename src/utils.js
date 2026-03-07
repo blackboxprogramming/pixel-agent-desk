@@ -40,7 +40,7 @@ function getWindowSizeForAgents(agentsOrCount) {
     count = agentsOrCount || 0;
   }
 
-  if (count <= 1) return { width: 150, height: 150 };
+  if (count <= 1) return { width: 150, height: 175 };
 
   const CARD_W = 80;
   const GAP = 10;
@@ -62,7 +62,7 @@ function getWindowSizeForAgents(agentsOrCount) {
     const gridAgents = agents.filter(a => !isSatellite(a));
     const gridCount = gridAgents.length;
 
-    if (gridCount <= 1 && agents.length <= 1) return { width: 150, height: 150 };
+    if (gridCount <= 1 && agents.length <= 1) return { width: 150, height: 175 };
 
     // Count satellite children per parent → calculate extra row height
     const satellitesPerParent = new Map();

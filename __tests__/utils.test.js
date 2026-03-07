@@ -56,8 +56,8 @@ describe('formatTime', () => {
 
 describe('getWindowSizeForAgents', () => {
   test('returns minimum size for 0 or 1 agent', () => {
-    expect(getWindowSizeForAgents(0)).toEqual({ width: 150, height: 150 });
-    expect(getWindowSizeForAgents(1)).toEqual({ width: 150, height: 150 });
+    expect(getWindowSizeForAgents(0)).toEqual({ width: 150, height: 175 });
+    expect(getWindowSizeForAgents(1)).toEqual({ width: 150, height: 175 });
   });
 
   test('calculates size for multiple agents (count only)', () => {

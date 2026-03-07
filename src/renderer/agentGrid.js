@@ -378,11 +378,11 @@ function updateGridLayout() {
   });
 }
 
-// Window resize (called only on agent add/remove, 500ms throttle)
+// Window resize — debounce (restarts on each call, uses latest size)
 let _resizeTimer = null;
 function requestDynamicResize() {
   if (!window.electronAPI || !window.electronAPI.resizeWindow) return;
-  if (_resizeTimer) return;
+  clearTimeout(_resizeTimer);
   _resizeTimer = setTimeout(() => {
     _resizeTimer = null;
     const grid = document.getElementById('agent-grid');
@@ -391,5 +391,5 @@ function requestDynamicResize() {
     const height = grid.scrollHeight;
     if (width < 100 || height < 100) return;
     window.electronAPI.resizeWindow({ width, height });
-  }, 500);
+  }, 100);
 }

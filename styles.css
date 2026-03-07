@@ -28,14 +28,14 @@ body {
   min-width: 150px;
   min-height: 150px;
   width: fit-content;
-  height: auto;
+  height: 100%;
   padding-bottom: 2px;
   /* Minimum margin to prevent sticking to bottom (minimized to avoid DWM white line) */
 }
 
 html {
   overflow: hidden !important;
-  height: auto;
+  height: 100%;
 }
 
 ::-webkit-scrollbar {
@@ -51,7 +51,7 @@ html {
   gap: 10px;
   justify-content: center;
   align-items: flex-end;
-  padding: 10px;
+  padding: 10px 10px 30px 10px;
 }
 
 .agent-grid.has-multiple {
@@ -62,7 +62,7 @@ html {
   gap: 10px 10px;
   justify-content: center;
   align-items: end;
-  padding: 10px;
+  padding: 10px 10px 30px 10px;
   width: fit-content;
   max-width: 100%;
 }
