@@ -24,6 +24,9 @@ function updateAgent(agent) {
   const card = document.querySelector(`[data-agent-id="${agent.id}"]`);
   if (!card) return;
 
+  // Capture previous data BEFORE updating lastAgents
+  const prevData = window.lastAgents?.find(a => a.id === agent.id);
+
   if (window.lastAgents) {
     const idx = window.lastAgents.findIndex(a => a.id === agent.id);
     if (idx > -1) {
@@ -38,9 +41,14 @@ function updateAgent(agent) {
   const wasTeammate = card.classList.contains('is-teammate');
   const typeChanged = (!!agent.isSubagent !== wasSubagent) || (!!agent.isTeammate !== wasTeammate);
 
+  const relationshipChanged = prevData && (
+    prevData.parentId !== agent.parentId ||
+    prevData.teamName !== agent.teamName
+  );
+
   updateAgentState(agent.id, card, agent);
 
-  if (typeChanged) {
+  if (typeChanged || relationshipChanged) {
     updateGridLayout();
     requestDynamicResize();
   }
@@ -138,8 +146,7 @@ function updateGridLayout() {
     }
   });
 
-  let lastProject = null;
-  let mainIndex = 0;
+  const needsDisambiguation = mains.length > 1;
 
   let col = 1;
   let currentRow = 1;
@@ -147,20 +154,24 @@ function updateGridLayout() {
 
   mains.forEach(mainItem => {
     const proj = mainItem.data.projectPath;
-    if (lastProject !== null && proj !== lastProject) {
-      mainIndex = 0;
-    }
-    lastProject = proj;
 
     const typeTag = mainItem.card.querySelector('.type-tag');
-    const label = `Main_${mainIndex}`;
+    let label = 'Main';
+    if (needsDisambiguation) {
+      const basename = proj ? proj.replace(/[\\/]+$/, '').split(/[\\/]/).pop() : '?';
+      const sameProjMains = mains.filter(m => m.data.projectPath === proj);
+      if (sameProjMains.length > 1) {
+        label = `Main:${basename}:${(mainItem.data.id || '').slice(0, 4)}`;
+      } else {
+        label = `Main:${basename}`;
+      }
+    }
     if (typeTag) typeTag.textContent = label;
-    mainIndex++;
 
     const mySubs = [];
     for (let i = fallbackSubList.length - 1; i >= 0; i--) {
       const sub = fallbackSubList[i];
-      if (sub.data.parentId === mainItem.data.id || (!sub.data.parentId && sub.data.projectPath === proj)) {
+      if (sub.data.parentId === mainItem.data.id) {
         mySubs.push(sub);
         fallbackSubList.splice(i, 1);
       }
@@ -197,17 +208,31 @@ function updateGridLayout() {
     col++;
   });
 
-  // Group remaining items by teamName
+  // Group remaining items by teamName, including subs whose parent has a teamName
   const teamGroups = new Map();
   const noTeam = [];
   fallbackSubList.forEach(s => {
-    const tn = s.data.teamName;
+    let tn = s.data.teamName;
+    if (!tn && s.data.parentId) {
+      const parent = window.lastAgents?.find(a => a.id === s.data.parentId);
+      if (parent && parent.teamName) tn = parent.teamName;
+    }
     if (tn) {
       if (!teamGroups.has(tn)) teamGroups.set(tn, []);
       teamGroups.get(tn).push(s);
     } else {
       noTeam.push(s);
     }
+  });
+
+  // Sort within teams: teammates first, then subs
+  teamGroups.forEach((members) => {
+    members.sort((a, b) => {
+      const aIsSub = !!a.data.isSubagent;
+      const bIsSub = !!b.data.isSubagent;
+      if (aIsSub !== bIsSub) return aIsSub ? 1 : -1;
+      return 0;
+    });
   });
 
   // Render team groups (same layout as main+subs)
