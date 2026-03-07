@@ -294,6 +294,104 @@ describe('HeatmapScanner', () => {
     });
   });
 
+  describe('byModel aggregation', () => {
+    test('aggregates tokens and cost per model', async () => {
+      const lines = [
+        makeAssistantLine('2026-03-05T10:00:00Z', 'sess-1', {
+          model: 'claude-sonnet-4-6',
+          inputTokens: 1000,
+          outputTokens: 200,
+        }),
+        makeAssistantLine('2026-03-05T11:00:00Z', 'sess-1', {
+          model: 'claude-opus-4-6',
+          inputTokens: 500,
+          outputTokens: 100,
+        }),
+        makeAssistantLine('2026-03-05T12:00:00Z', 'sess-1', {
+          model: 'claude-sonnet-4-6',
+          inputTokens: 2000,
+          outputTokens: 300,
+        }),
+      ].join('\n') + '\n';
+
+      fs.writeFileSync(path.join(projectsDir, 'transcript.jsonl'), lines);
+
+      const scanner = new HeatmapScanner();
+      await scanner.scanAll();
+
+      const day = scanner.getDailyStats().days['2026-03-05'];
+      expect(day.byModel).toBeDefined();
+
+      // Sonnet: 1000+2000 = 3000 input, 200+300 = 500 output
+      expect(day.byModel['claude-sonnet-4-6'].inputTokens).toBe(3000);
+      expect(day.byModel['claude-sonnet-4-6'].outputTokens).toBe(500);
+      expect(day.byModel['claude-sonnet-4-6'].estimatedCost).toBeGreaterThan(0);
+
+      // Opus: 500 input, 100 output
+      expect(day.byModel['claude-opus-4-6'].inputTokens).toBe(500);
+      expect(day.byModel['claude-opus-4-6'].outputTokens).toBe(100);
+      expect(day.byModel['claude-opus-4-6'].estimatedCost).toBeGreaterThan(0);
+
+      // Opus cost should be higher per-token than Sonnet
+      const opusCostPerToken = day.byModel['claude-opus-4-6'].estimatedCost / 600;
+      const sonnetCostPerToken = day.byModel['claude-sonnet-4-6'].estimatedCost / 3500;
+      expect(opusCostPerToken).toBeGreaterThan(sonnetCostPerToken);
+    });
+
+    test('byModel persists through save/load', async () => {
+      const lines = [
+        makeAssistantLine('2026-03-05T10:00:00Z', 'sess-1', {
+          model: 'claude-opus-4-6',
+          inputTokens: 1000,
+          outputTokens: 100,
+        }),
+      ].join('\n') + '\n';
+
+      fs.writeFileSync(path.join(projectsDir, 'transcript.jsonl'), lines);
+
+      const scanner1 = new HeatmapScanner();
+      await scanner1.scanAll();
+
+      // Load from persistence
+      const scanner2 = new HeatmapScanner();
+      const day = scanner2.getDailyStats().days['2026-03-05'];
+      expect(day.byModel['claude-opus-4-6']).toBeDefined();
+      expect(day.byModel['claude-opus-4-6'].inputTokens).toBe(1000);
+      expect(day.byModel['claude-opus-4-6'].outputTokens).toBe(100);
+      expect(day.byModel['claude-opus-4-6'].estimatedCost).toBeGreaterThan(0);
+    });
+
+    test('backward compat: missing byModel defaults to empty object', () => {
+      // Write a cache file without byModel
+      fs.mkdirSync(persistDir, { recursive: true });
+      const cacheData = {
+        days: {
+          '2026-03-05': {
+            sessions: 1,
+            userMessages: 1,
+            assistantMessages: 1,
+            toolUses: 0,
+            inputTokens: 1000,
+            outputTokens: 200,
+            estimatedCost: 0.01,
+            projects: [],
+          },
+        },
+        lastScan: Date.now(),
+        fileOffsets: {},
+      };
+      fs.writeFileSync(
+        path.join(persistDir, 'heatmap.json'),
+        JSON.stringify(cacheData),
+        'utf-8'
+      );
+
+      const scanner = new HeatmapScanner();
+      const day = scanner.getDailyStats().days['2026-03-05'];
+      expect(day.byModel).toEqual({});
+    });
+  });
+
   describe('start and stop', () => {
     test('start and stop manage interval', () => {
       jest.useFakeTimers();

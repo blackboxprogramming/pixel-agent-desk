@@ -756,6 +756,120 @@
       color: var(--color-text-muted);
       text-transform: uppercase;
     }
+
+    /* ─── Agent Timeline (Gantt) ─── */
+    .mc-timeline {
+      display: flex;
+      height: 6px;
+      border-radius: 3px;
+      overflow: hidden;
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .mc-timeline-seg {
+      min-width: 2px;
+      height: 100%;
+      transition: flex-grow 0.3s ease;
+    }
+
+    /* ─── Office Popover ─── */
+    .office-popover {
+      position: fixed;
+      z-index: 10000;
+      background: rgba(21, 25, 28, 0.95);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      color: #fff;
+      font-size: 0.78rem;
+      box-shadow: var(--shadow-md);
+      min-width: 240px;
+      max-width: 320px;
+      display: none;
+      pointer-events: auto;
+    }
+
+    .office-popover .pop-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--color-border);
+    }
+
+    .office-popover .pop-name {
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+
+    .office-popover .pop-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 3px 0;
+      color: var(--color-text-muted);
+    }
+
+    .office-popover .pop-val {
+      font-family: var(--font-mono);
+      font-weight: 500;
+      color: var(--color-text);
+    }
+
+    /* ─── Model Breakdown ─── */
+    .model-breakdown {
+      margin-top: 24px;
+    }
+
+    .model-breakdown .mb-title {
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+
+    .model-bar-container {
+      display: flex;
+      height: 24px;
+      border-radius: 4px;
+      overflow: hidden;
+      background: rgba(255, 255, 255, 0.04);
+      margin-bottom: 12px;
+    }
+
+    .model-seg {
+      height: 100%;
+      transition: flex-grow 0.4s ease;
+      position: relative;
+      min-width: 2px;
+    }
+
+    .model-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px 20px;
+      font-size: 0.75rem;
+    }
+
+    .model-legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--color-text-muted);
+    }
+
+    .model-legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 3px;
+      flex-shrink: 0;
+    }
+
+    .model-legend-val {
+      font-family: var(--font-mono);
+      font-weight: 500;
+      color: var(--color-text);
+    }
   </style>
 </head>
 
@@ -934,6 +1048,11 @@
             <div class="panel-header">Cost Impact ($)</div>
             <div class="panel-body" id="chartCostRoot" style="padding-top:0;"></div>
           </div>
+
+          <div class="panel model-breakdown" id="modelBreakdownRoot" style="display:none;">
+            <div class="panel-header">Model Breakdown</div>
+            <div class="panel-body" id="modelBreakdownBody"></div>
+          </div>
         </div>
 
       </div>
@@ -942,6 +1061,9 @@
 
   <!-- Global Tooltip -->
   <div class="mc-tooltip" id="mcTooltip"></div>
+
+  <!-- Office Character Popover -->
+  <div class="office-popover" id="officePopover"></div>
 
   <!-- Office Engine Scripts -->
   <script src="/src/office/office-config.js?v=2"></script>
@@ -958,6 +1080,7 @@
   <script>
     const state = {
       agents: new Map(),
+      agentHistory: new Map(),
       stats: { total: 0, active: 0, completed: 0, totalTokens: 0, totalCost: 0, errorCount: 0 },
       connected: false,
       currentView: localStorage.getItem('mc-view') || 'office'
@@ -1009,7 +1132,13 @@
       try {
         const res = await fetch('/api/agents');
         const ags = await res.json();
-        for (const a of ags) state.agents.set(a.id, a);
+        for (const a of ags) {
+          state.agents.set(a.id, a);
+          // Seed timeline history
+          if (!state.agentHistory.has(a.id)) {
+            state.agentHistory.set(a.id, [{ state: a.status, ts: Date.now() }]);
+          }
+        }
         recalcStats();
         renderAgentList();
       } catch (e) {
@@ -1020,12 +1149,22 @@
     function updateAgent(ag) {
       if (ag.status === 'error') state.stats.errorCount++;
       state.agents.set(ag.id, ag);
+
+      // Track state history for timeline
+      const hist = state.agentHistory.get(ag.id) || [];
+      const last = hist.length > 0 ? hist[hist.length - 1] : null;
+      if (!last || last.state !== ag.status) {
+        hist.push({ state: ag.status, ts: Date.now() });
+        state.agentHistory.set(ag.id, hist);
+      }
+
       recalcStats();
       updateAgentUI(ag);
     }
 
     function removeAgent(id) {
       state.agents.delete(id);
+      state.agentHistory.delete(id);
       recalcStats();
       const el = DOM.agentPanel.querySelector(`[data-id="${id}"]`);
       if (el) el.remove();
@@ -1095,12 +1234,29 @@
       const ctxColor = !hasCtx ? '' : ctxPct > 85 ? 'ctx-high' : ctxPct > 60 ? 'ctx-mid' : 'ctx-low';
       const ctxValText = hasCtx ? `~${ctxPct}%` : '--';
 
+      // Build timeline segments
+      const hist = state.agentHistory.get(ag.id) || [];
+      let timelineHtml = '';
+      if (hist.length > 0) {
+        const now = Date.now();
+        const segs = hist.map((h, i) => {
+          const end = (i + 1 < hist.length) ? hist[i + 1].ts : now;
+          const dur = Math.max(end - h.ts, 1);
+          return { state: h.state, dur };
+        });
+        const segHtml = segs.map(s =>
+          `<div class="mc-timeline-seg" style="flex-grow:${s.dur};background:${getStateColor(s.state)}" title="${s.state}"></div>`
+        ).join('');
+        timelineHtml = `<div class="mc-timeline">${segHtml}</div>`;
+      }
+
       const html = `
         <div class="mc-agent-header">
           <div class="mc-agent-name">${ag.name || 'Agent'} ${typeHtml}</div>
           <div class="mc-agent-status ${stClass}">${stText}</div>
         </div>
         <div class="mc-agent-activity">CMD> ${actText}</div>
+        ${timelineHtml}
         <div class="mc-agent-metrics">
           <span>TX: <span class="mc-metric-val">${tokens}</span> tok</span>
           <span>$<span class="mc-metric-val">${cost}</span></span>
@@ -1121,6 +1277,208 @@
         div.innerHTML = html;
         DOM.agentPanel.appendChild(div);
       }
+    }
+
+    // ─── TIMELINE STATE COLORS ───
+    function getStateColor(status) {
+      const map = {
+        working: 'var(--color-state-working)',
+        thinking: 'var(--color-state-thinking)',
+        waiting: 'var(--color-state-waiting)',
+        done: 'var(--color-state-done)',
+        completed: 'var(--color-state-done)',
+        error: 'var(--color-state-error)',
+      };
+      return map[status] || 'var(--color-state-waiting)';
+    }
+
+    // ─── OFFICE CHARACTER CLICK POPOVER ───
+    const popoverEl = document.getElementById('officePopover');
+
+    function hitTestOfficeCharacter(canvas, event) {
+      if (typeof officeCharacters === 'undefined') return null;
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      const cx = (event.clientX - rect.left) * scaleX;
+      const cy = (event.clientY - rect.top) * scaleY;
+
+      const chars = officeCharacters.getCharacterArray();
+      // Reverse Y-sort: topmost (highest y) rendered last, so check first
+      const sorted = [...chars].sort((a, b) => b.y - a.y);
+
+      const FW = (typeof OFFICE !== 'undefined' && OFFICE.FRAME_W) || 48;
+      const FH = (typeof OFFICE !== 'undefined' && OFFICE.FRAME_H) || 64;
+
+      for (const ch of sorted) {
+        const left = ch.x - FW / 2;
+        const top = ch.y - FH;
+        if (cx >= left && cx <= left + FW && cy >= top && cy <= top + FH) {
+          return ch;
+        }
+      }
+      return null;
+    }
+
+    function showOfficePopover(canvas, char) {
+      const ag = state.agents.get(char.id);
+      const name = char.role || (ag && ag.name) || 'Agent';
+      const status = (ag && ag.status) || char.agentState || 'idle';
+      const stClass = ['working', 'thinking', 'error', 'done', 'completed'].includes(status) ? status : 'waiting';
+      const project = (ag && ag.metadata && ag.metadata.projectSlug) || char.metadata?.project || '-';
+      const tool = (ag && ag.currentTool) || char.metadata?.tool || '-';
+      const model = (ag && ag.model) || '-';
+      const inputTok = (ag && ag.tokenUsage?.inputTokens) || 0;
+      const outputTok = (ag && ag.tokenUsage?.outputTokens) || 0;
+      const cost = (ag && ag.tokenUsage?.estimatedCost) || 0;
+      const ctxPct = (ag && ag.tokenUsage?.contextPercent);
+      const ctxText = ctxPct != null ? `~${ctxPct}%` : '-';
+
+      popoverEl.innerHTML = `
+        <div class="pop-header">
+          <span class="pop-name">${name}</span>
+          <div class="mc-agent-status ${stClass}" style="font-size:0.6rem">${status.toUpperCase()}</div>
+        </div>
+        <div class="pop-row"><span>Project</span><span class="pop-val">${project}</span></div>
+        <div class="pop-row"><span>Tool</span><span class="pop-val">${tool}</span></div>
+        <div class="pop-row"><span>Model</span><span class="pop-val">${model}</span></div>
+        <div class="pop-row"><span>Tokens</span><span class="pop-val">${formatNum(inputTok + outputTok)}</span></div>
+        <div class="pop-row"><span>Cost</span><span class="pop-val">$${cost.toFixed(4)}</span></div>
+        <div class="pop-row"><span>Context</span><span class="pop-val">${ctxText}</span></div>
+      `;
+      popoverEl.style.display = 'block';
+
+      // Position near the character
+      const rect = canvas.getBoundingClientRect();
+      const FW = (typeof OFFICE !== 'undefined' && OFFICE.FRAME_W) || 48;
+      const FH = (typeof OFFICE !== 'undefined' && OFFICE.FRAME_H) || 64;
+      const scaleX = rect.width / canvas.width;
+      const scaleY = rect.height / canvas.height;
+      const screenX = rect.left + (char.x - FW / 2) * scaleX;
+      const screenY = rect.top + (char.y - FH) * scaleY;
+
+      // Try to position above the character, fall back to below
+      const popW = popoverEl.offsetWidth;
+      const popH = popoverEl.offsetHeight;
+      let left = screenX + (FW * scaleX) / 2 - popW / 2;
+      let top = screenY - popH - 8;
+      if (top < 4) top = screenY + FH * scaleY + 8;
+      left = Math.max(4, Math.min(window.innerWidth - popW - 4, left));
+      top = Math.max(4, Math.min(window.innerHeight - popH - 4, top));
+
+      popoverEl.style.left = left + 'px';
+      popoverEl.style.top = top + 'px';
+    }
+
+    function hideOfficePopover() {
+      popoverEl.style.display = 'none';
+    }
+
+    function setupOfficeClickHandler() {
+      const canvas = document.getElementById('office-canvas');
+      if (!canvas) return;
+
+      canvas.addEventListener('click', (e) => {
+        const char = hitTestOfficeCharacter(canvas, e);
+        if (char) {
+          showOfficePopover(canvas, char);
+        } else {
+          hideOfficePopover();
+        }
+      });
+
+      // Close on outside click
+      document.addEventListener('click', (e) => {
+        if (!popoverEl.contains(e.target) && e.target.id !== 'office-canvas') {
+          hideOfficePopover();
+        }
+      });
+
+      // Close on ESC
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') hideOfficePopover();
+      });
+    }
+
+    // ─── MODEL BREAKDOWN (Feature 3 Frontend) ───
+    const MODEL_COLORS = {
+      opus: '#e879a0',
+      sonnet: '#2f81f7',
+      haiku: '#3fb950',
+    };
+
+    function getModelFamily(modelName) {
+      if (!modelName) return null;
+      const lower = modelName.toLowerCase();
+      if (lower.includes('opus')) return 'opus';
+      if (lower.includes('sonnet')) return 'sonnet';
+      if (lower.includes('haiku')) return 'haiku';
+      return null;
+    }
+
+    function getModelColor(modelName) {
+      const fam = getModelFamily(modelName);
+      return (fam && MODEL_COLORS[fam]) || '#8b949e';
+    }
+
+    function getModelDisplayName(modelName) {
+      if (!modelName) return 'Unknown';
+      // "claude-sonnet-4-6" → "Sonnet 4.6"
+      const m = modelName.match(/claude-(\w+)-(\d+)-(\d+)/);
+      if (m) return `${m[1].charAt(0).toUpperCase() + m[1].slice(1)} ${m[2]}.${m[3]}`;
+      return modelName;
+    }
+
+    function renderModelBreakdown(days) {
+      const root = document.getElementById('modelBreakdownRoot');
+      const body = document.getElementById('modelBreakdownBody');
+      if (!root || !body) return;
+
+      // Aggregate byModel across all days
+      const totals = {};
+      for (const dayStats of Object.values(days)) {
+        if (!dayStats.byModel) continue;
+        for (const [model, ms] of Object.entries(dayStats.byModel)) {
+          if (!totals[model]) totals[model] = { inputTokens: 0, outputTokens: 0, estimatedCost: 0 };
+          totals[model].inputTokens += ms.inputTokens || 0;
+          totals[model].outputTokens += ms.outputTokens || 0;
+          totals[model].estimatedCost += ms.estimatedCost || 0;
+        }
+      }
+
+      const models = Object.keys(totals);
+      if (models.length === 0) {
+        root.style.display = 'none';
+        return;
+      }
+      root.style.display = 'block';
+
+      const grandCost = models.reduce((s, m) => s + totals[m].estimatedCost, 0);
+
+      // Build proportional bar
+      const barSegs = models.map(m => {
+        const pct = grandCost > 0 ? (totals[m].estimatedCost / grandCost) : 0;
+        return `<div class="model-seg" style="flex-grow:${Math.max(totals[m].estimatedCost, 0.001)};background:${getModelColor(m)}" title="${getModelDisplayName(m)}: $${totals[m].estimatedCost.toFixed(2)}"></div>`;
+      }).join('');
+
+      // Build legend
+      const legendItems = models
+        .sort((a, b) => totals[b].estimatedCost - totals[a].estimatedCost)
+        .map(m => {
+          const tok = formatNum(totals[m].inputTokens + totals[m].outputTokens);
+          const cost = totals[m].estimatedCost.toFixed(2);
+          return `<div class="model-legend-item">
+            <div class="model-legend-dot" style="background:${getModelColor(m)}"></div>
+            <span>${getModelDisplayName(m)}</span>
+            <span class="model-legend-val">${tok} tok</span>
+            <span class="model-legend-val">$${cost}</span>
+          </div>`;
+        }).join('');
+
+      body.innerHTML = `
+        <div class="model-bar-container">${barSegs}</div>
+        <div class="model-legend">${legendItems}</div>
+      `;
     }
 
     // ─── HEATMAP & USAGE DATA FETCH ───
@@ -1251,6 +1609,8 @@
 
       document.getElementById('chartTokensRoot').innerHTML = buildBars(tChart, 'tokens');
       document.getElementById('chartCostRoot').innerHTML = buildBars(cChart, 'cost', true);
+
+      renderModelBreakdown(days);
     }
 
     function aggChart(days, mode, valFn) {
@@ -1341,7 +1701,10 @@
       else if (target === 'usage') renderUsageView();
 
       // We rely on standard office-init.js to boot the canvas logic
-      if (typeof initOffice === 'function') setTimeout(initOffice, 100);
+      if (typeof initOffice === 'function') setTimeout(() => {
+        initOffice();
+        setupOfficeClickHandler();
+      }, 100);
     }
 
     document.addEventListener('DOMContentLoaded', initApp);

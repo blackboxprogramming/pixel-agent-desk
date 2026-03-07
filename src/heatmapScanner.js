@@ -224,12 +224,23 @@ class HeatmapScanner {
           // Cost calculation
           const model = entry.message.model || null;
           const pricing = (model && MODEL_PRICING[model]) || DEFAULT_PRICING;
-          day.estimatedCost += roundCost(
+          const entryCost = roundCost(
             input * pricing.input +
             cacheRead * pricing.input * 0.1 +
             cacheCreate * pricing.input * 1.25 +
             output * pricing.output
           );
+          day.estimatedCost += entryCost;
+
+          // Per-model aggregation
+          if (model) {
+            if (!day.byModel[model]) {
+              day.byModel[model] = { inputTokens: 0, outputTokens: 0, estimatedCost: 0 };
+            }
+            day.byModel[model].inputTokens += input + cacheRead + cacheCreate;
+            day.byModel[model].outputTokens += output;
+            day.byModel[model].estimatedCost += entryCost;
+          }
         }
 
         // tool_use block count
@@ -273,6 +284,7 @@ class HeatmapScanner {
         inputTokens: 0,
         outputTokens: 0,
         estimatedCost: 0,
+        byModel: {},
         projects: [],
         // Internal tracking (excluded during serialization)
         _sessions: new Set(),
@@ -330,6 +342,12 @@ class HeatmapScanner {
       for (const [date, stats] of Object.entries(this.days)) {
         const { _sessions, _projects, ...rest } = stats;
         rest.estimatedCost = roundCost(rest.estimatedCost);
+        // Round per-model costs
+        if (rest.byModel) {
+          for (const m of Object.keys(rest.byModel)) {
+            rest.byModel[m].estimatedCost = roundCost(rest.byModel[m].estimatedCost);
+          }
+        }
         serialDays[date] = rest;
       }
 
@@ -358,6 +376,7 @@ class HeatmapScanner {
         for (const [date, stats] of Object.entries(data.days)) {
           this.days[date] = {
             ...stats,
+            byModel: stats.byModel || {},
             _sessions: new Set(),
             _projects: new Set(stats.projects || []),
           };
@@ -382,6 +401,7 @@ class HeatmapScanner {
  * @property {number} inputTokens
  * @property {number} outputTokens
  * @property {number} estimatedCost
+ * @property {Record<string, {inputTokens: number, outputTokens: number, estimatedCost: number}>} byModel
  * @property {string[]} projects
  */
 
