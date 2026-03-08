@@ -603,6 +603,18 @@ document.querySelectorAll('.nav-item').forEach(b => {
   };
 });
 
+// ─── PiP TOGGLE ───
+(function () {
+  var pipBtn = document.getElementById('pipToggleBtn');
+  if (pipBtn) {
+    pipBtn.addEventListener('click', function () {
+      if (typeof dashboardAPI !== 'undefined' && dashboardAPI.togglePip) {
+        dashboardAPI.togglePip();
+      }
+    });
+  }
+})();
+
 // ─── BOOT ───
 function initApp() {
   // Sync startup view

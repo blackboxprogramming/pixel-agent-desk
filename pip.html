@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Office PiP</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #050709; overflow: hidden; }
+    #office-canvas { image-rendering: pixelated; image-rendering: crisp-edges; }
+  </style>
+</head>
+<body>
+  <canvas id="office-canvas"></canvas>
+
+  <script src="/src/office/office-config.js?v=5"></script>
+  <script src="/src/office/office-layers.js?v=5"></script>
+  <script src="/src/office/office-coords.js?v=5"></script>
+  <script src="/src/office/office-pathfinder.js?v=5"></script>
+  <script src="/src/office/office-sprite.js?v=5"></script>
+  <script src="/src/office/office-character.js?v=5"></script>
+  <script src="/src/office/office-renderer.js?v=5"></script>
+  <script src="/src/office/office-ui.js?v=5"></script>
+  <script src="/src/office/office-init.js?v=5"></script>
+  <script>
+    // Minimal boot: init office + connect SSE for agent updates
+    (function () {
+      function boot() {
+        console.log('[PiP] boot start');
+        initOffice().then(function () {
+          console.log('[PiP] office initialized, canvas:',
+            document.getElementById('office-canvas').width, 'x',
+            document.getElementById('office-canvas').height);
+          // Connect SSE for live agent updates
+          var es = new EventSource('/api/events');
+          es.addEventListener('connected', function () {
+            fetch('/api/agents').then(function (r) { return r.json(); })
+              .then(function (agents) {
+                agents.forEach(function (a) { officeOnAgentCreated(a); });
+              });
+          });
+          es.addEventListener('agent.created', function (e) {
+            officeOnAgentCreated(JSON.parse(e.data).data);
+          });
+          es.addEventListener('agent.updated', function (e) {
+            officeOnAgentUpdated(JSON.parse(e.data).data);
+          });
+          es.addEventListener('agent.removed', function (e) {
+            officeOnAgentRemoved(JSON.parse(e.data).data);
+          });
+        }).catch(function (e) {
+          console.error('[PiP] init failed:', e);
+        });
+      }
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', boot);
+      } else {
+        boot();
+      }
+    })();
+  </script>
+</body>
+</html>

@@ -50,4 +50,7 @@ contextBridge.exposeInMainWorld('dashboardAPI', {
     ipcRenderer.send('dashboard-focus-agent', agentId);
   },
 
+  // PiP
+  togglePip: () => ipcRenderer.invoke('toggle-pip'),
+
 });

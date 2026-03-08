@@ -9,6 +9,7 @@ const path = require('path');
 function createWindowManager({ agentManager, sessionScanner, heatmapScanner, debugLog, adaptAgentToDashboard, errorHandler, getWindowSizeForAgents }) {
   let mainWindow = null;
   let dashboardWindow = null;
+  let pipWindow = null;
   let keepAliveInterval = null;
   let dashboardServer = null;
 
@@ -178,7 +179,61 @@ function createWindowManager({ agentManager, sessionScanner, heatmapScanner, deb
     }
   }
 
+  // ─── PiP Window (Step 1: basic frame:true prototype) ───
+  function createPipWindow() {
+    if (pipWindow && !pipWindow.isDestroyed()) {
+      pipWindow.focus();
+      return;
+    }
+
+    const { width, height } = screen.getPrimaryDisplay().workAreaSize;
+    const pipW = 480;
+    const pipH = 450;
+
+    pipWindow = new BrowserWindow({
+      width: pipW,
+      height: pipH,
+      x: width - pipW - 20,
+      y: height - pipH - 20,
+      alwaysOnTop: true,
+      resizable: true,
+      maximizable: false,
+      title: 'Office PiP',
+      backgroundColor: '#050709',
+      autoHideMenuBar: true,
+      webPreferences: {
+        nodeIntegration: false,
+        contextIsolation: true,
+        sandbox: false
+      }
+    });
+
+    pipWindow.setAlwaysOnTop(true, 'floating');
+    pipWindow.loadURL('http://localhost:3000/pip');
+
+    pipWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
+      debugLog(`[PiP] Failed to load: ${errorCode} - ${errorDescription}`);
+      if (pipWindow && !pipWindow.isDestroyed()) pipWindow.destroy();
+      pipWindow = null;
+    });
+
+    pipWindow.on('closed', () => {
+      pipWindow = null;
+      debugLog('[PiP] Window closed');
+    });
+
+    debugLog('[PiP] Window created (frame:true prototype)');
+  }
+
+  function closePipWindow() {
+    if (pipWindow && !pipWindow.isDestroyed()) {
+      pipWindow.close();
+    }
+    pipWindow = null;
+  }
+
   function closeDashboardWindow() {
+    closePipWindow();
     if (dashboardWindow && !dashboardWindow.isDestroyed()) {
       dashboardWindow.close();
       debugLog('[MissionControl] Window closed by request');
@@ -232,11 +287,14 @@ function createWindowManager({ agentManager, sessionScanner, heatmapScanner, deb
   return {
     get mainWindow() { return mainWindow; },
     get dashboardWindow() { return dashboardWindow; },
+    get pipWindow() { return pipWindow; },
     createWindow,
     startKeepAlive,
     stopKeepAlive,
     createDashboardWindow,
     closeDashboardWindow,
+    createPipWindow,
+    closePipWindow,
     startDashboardServer,
     stopDashboardServer,
     resizeWindowForAgents,
