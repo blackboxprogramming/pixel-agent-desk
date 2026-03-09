@@ -195,17 +195,25 @@ function createWindowManager({ agentManager, sessionScanner, heatmapScanner, deb
       height: pipH,
       x: width - pipW - 20,
       y: height - pipH - 20,
-      alwaysOnTop: true,
+      frame: true,
       resizable: true,
       maximizable: false,
       title: 'Office PiP',
       backgroundColor: '#050709',
       autoHideMenuBar: true,
+      show: false,
       webPreferences: {
         nodeIntegration: false,
         contextIsolation: true,
         sandbox: false
       }
+    });
+
+    pipWindow.once('ready-to-show', () => {
+      if (!pipWindow || pipWindow.isDestroyed()) return;
+      pipWindow.show();
+      pipWindow.setAlwaysOnTop(true, 'floating');
+      debugLog('[PiP] Window shown with title bar');
     });
 
     pipWindow.loadURL('http://localhost:3000/pip');
